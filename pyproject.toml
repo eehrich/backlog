@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "backlog-tool"
+version = "0.1.0"
+description = "A lightweight CLI tool for managing project backlogs in Markdown format"
+authors = [{ name = "Enrico Ehrich" }]
+license = {text = "Apache-2.0"}
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Bug Tracking",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/eehrich/backlog"
+Repository = "https://github.com/eehrich/backlog"
+
+[project.scripts]
+backlog = "backlog:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"backlog_tool" = ["template.md"]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.12",
+    "mypy>=1.7",
+]
+test = [
+    "pytest>=8.4",
+    "pytest-timeout>=2.4.0",
+    "pytest-cov>=6.0.0",
+    "pyyaml>=6.0",
+]
+
+[tool.ruff]
+line-length = 100
+exclude = [".venv", ".pytest_cache", "*.egg-info", "__pycache__"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+follow_imports = "silent"
+warn_unreachable = true
+disable_error_code = ["misc"]
+

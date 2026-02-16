@@ -1,0 +1,100 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Python: Ruff (check & fix)",
+			"type": "shell",
+			"windows": {
+				"command": ".venv/Scripts/python.exe"
+			},
+			"linux": {
+				"command": "${workspaceFolder}/.venv/bin/python"
+			},
+			"osx": {
+				"command": "${workspaceFolder}/.venv/bin/python"
+			},
+			"args": [
+				"-m",
+				"ruff",
+				"check",
+				"src",
+				"--fix"
+			],
+			"options": {
+				"env": {
+					"PYTHONUTF8": "1",
+					"PYTHONIOENCODING": "utf-8:replace"
+				}
+			},
+			"group": "test",
+			"presentation": {
+				"reveal": "always"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Python: Mypy (type check)",
+			"type": "shell",
+			"windows": {
+				"command": ".venv/Scripts/python.exe"
+			},
+			"linux": {
+				"command": "${workspaceFolder}/.venv/bin/python"
+			},
+			"osx": {
+				"command": "${workspaceFolder}/.venv/bin/python"
+			},
+			"args": [
+				"-m",
+				"mypy",
+				"src",
+				"--show-traceback"
+			],
+			"options": {
+				"env": {
+					"PYTHONUTF8": "1",
+					"PYTHONIOENCODING": "utf-8:replace"
+				}
+			},
+			"group": "test",
+			"presentation": {
+				"reveal": "always"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Python: Run all tests (venv)",
+			"type": "shell",
+			"windows": {
+				"command": ".venv/Scripts/python.exe"
+			},
+			"linux": {
+				"command": "${workspaceFolder}/.venv/bin/python"
+			},
+			"osx": {
+				"command": "${workspaceFolder}/.venv/bin/python"
+			},
+			"args": [
+				"-m",
+				"pytest",
+				"-q"
+			],
+			"options": {
+				"env": {
+					"PYTHONUTF8": "1",
+					"PYTHONIOENCODING": "utf-8:replace"
+				}
+			},
+			"group": {
+				"kind": "test",
+				"isDefault": true
+			},
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"panel": "shared"
+			},
+			"problemMatcher": []
+		}
+	]
+}
