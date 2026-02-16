@@ -3,6 +3,7 @@
 This module contains functions for converting Backlog objects back to
 markdown format.
 """
+
 import re
 from typing import Any, Dict, List, cast, Optional
 
@@ -22,7 +23,9 @@ def build_markdown(backlog: Backlog) -> str:
     lines: List[str] = []
 
     # Helper to remove raw_blocks corresponding to modeled fields
-    def _strip_modeled_blocks_global(raw_lines: list[str], modeled_keys: Optional[set[str]] = None) -> list[str]:
+    def _strip_modeled_blocks_global(
+        raw_lines: list[str], modeled_keys: Optional[set[str]] = None
+    ) -> list[str]:
         """Remove raw_lines blocks that correspond to modeled fields.
 
         Only removes blocks for keys that are present in `modeled_keys`.
@@ -34,17 +37,17 @@ def build_markdown(backlog: Backlog) -> str:
         # If no modeled keys provided, return raw lines unchanged
         if not modeled_keys:
             return list(raw_lines)
-        key_pattern = '|'.join(re.escape(k) for k in modeled_keys)
+        key_pattern = "|".join(re.escape(k) for k in modeled_keys)
         key_re = re.compile(rf"^\s*-\s*({key_pattern}):", flags=re.I)
         while i < len(raw_lines):
             ln = raw_lines[i]
             if key_re.match(ln.strip()):
-                base_indent = len(ln) - len(ln.lstrip(' '))
+                base_indent = len(ln) - len(ln.lstrip(" "))
                 i += 1
                 while i < len(raw_lines):
                     nxt = raw_lines[i]
-                    nxt_indent = len(nxt) - len(nxt.lstrip(' '))
-                    if nxt.strip() == '':
+                    nxt_indent = len(nxt) - len(nxt.lstrip(" "))
+                    if nxt.strip() == "":
                         i += 1
                         continue
                     if nxt_indent > base_indent:
@@ -62,8 +65,12 @@ def build_markdown(backlog: Backlog) -> str:
     # after an EOF marker or other footer content.
     hdr = backlog.header or []
     # find template markers if present
-    idx1 = next((i for i, line in enumerate(hdr) if line.strip().startswith("## 1. Epics - open")), None)
-    idx2 = next((i for i, line in enumerate(hdr) if line.strip().startswith("## 2. Epics - finished")), None)
+    idx1 = next(
+        (i for i, line in enumerate(hdr) if line.strip().startswith("## 1. Epics - open")), None
+    )
+    idx2 = next(
+        (i for i, line in enumerate(hdr) if line.strip().startswith("## 2. Epics - finished")), None
+    )
     # detect EOF-like marker in header which should be treated as a footer boundary
     eof_idx = next((i for i, line in enumerate(hdr) if line.strip() in ("EOF", "---")), None)
 
@@ -81,7 +88,7 @@ def build_markdown(backlog: Backlog) -> str:
             # emit header up to the Epics - open marker
             emit_header_head = hdr[:idx1]
             # we'll treat the header tail as the content after the finished marker
-            emit_footer_after_idx = (idx2 if idx2 is not None else idx1)
+            emit_footer_after_idx = idx2 if idx2 is not None else idx1
             emit_header_tail = hdr[emit_footer_after_idx + 1 :]
         lines.extend(emit_header_head)
         # ensure blank separator
@@ -108,8 +115,8 @@ def build_markdown(backlog: Backlog) -> str:
     for e in backlog.epics_open:
         # Use configured symbol for open epic where available
         sym = None
-        sym_map = cast(Dict[str, Any], values.get('symbol_map', {}) or {})
-        status_lower = (e.status or '').strip().lower()
+        sym_map = cast(Dict[str, Any], values.get("symbol_map", {}) or {})
+        status_lower = (e.status or "").strip().lower()
         for k, v in sym_map.items():
             if isinstance(v, list):
                 if status_lower in v:
@@ -118,7 +125,7 @@ def build_markdown(backlog: Backlog) -> str:
             elif v == status_lower:
                 sym = k
                 break
-        sym = sym or '☐'
+        sym = sym or "☐"
         lines.append(f"- {sym} Epic {e.id}: {e.title}")
         lines.append(f"  - status: {e.status}")
         # emit epic-level structured fields if present
@@ -147,7 +154,7 @@ def build_markdown(backlog: Backlog) -> str:
         # Preserve any raw_lines after structured fields
         if e.raw_lines:
             modeled = set()
-            for k in ('notes', 'description', 'added', 'closed'):
+            for k in ("notes", "description", "added", "closed"):
                 if getattr(e, k, None):
                     modeled.add(k)
             rl = _strip_modeled_blocks_global(list(e.raw_lines), modeled)
@@ -167,7 +174,7 @@ def build_markdown(backlog: Backlog) -> str:
         for t in e.tasks:
             # task symbol resolved from status
             task_sym = None
-            status_lower = (t.status or '').strip().lower()
+            status_lower = (t.status or "").strip().lower()
             for k, v in sym_map.items():
                 if isinstance(v, list):
                     if status_lower in v:
@@ -176,7 +183,7 @@ def build_markdown(backlog: Backlog) -> str:
                 elif v == status_lower:
                     task_sym = k
                     break
-            task_sym = task_sym or '\u2610'
+            task_sym = task_sym or "\u2610"
             lines.append(f"    - {task_sym} Task {t.id}: {t.title}")
             lines.append(f"      - status: {t.status}")
             if t.added:
@@ -185,7 +192,11 @@ def build_markdown(backlog: Backlog) -> str:
                 lines.append(f"      - closed: {t.closed}")
             if t.description:
                 # prefer inline when single-line
-                if len(t.description) == 1 and t.description[0] != "" and "\n" not in t.description[0]:
+                if (
+                    len(t.description) == 1
+                    and t.description[0] != ""
+                    and "\n" not in t.description[0]
+                ):
                     lines.append(f"      - description: {t.description[0]}")
                 else:
                     lines.append("      - description:")
@@ -203,7 +214,7 @@ def build_markdown(backlog: Backlog) -> str:
 
             # Preserve any raw_lines after structured fields for tasks
             if t.raw_lines:
-                modeled_task = {'status', 'added', 'closed', 'description', 'notes'}
+                modeled_task = {"status", "added", "closed", "description", "notes"}
                 rl = _strip_modeled_blocks_global(list(t.raw_lines), modeled_task)
                 for line in rl:
                     lines.append(f"      {line}")
@@ -217,8 +228,8 @@ def build_markdown(backlog: Backlog) -> str:
     for e in backlog.epics_finished:
         # resolve symbol for epic status (default to done/checkmark)
         sym = None
-        sym_map = cast(Dict[str, Any], values.get('symbol_map', {}) or {})
-        status_lower = (e.status or '').strip().lower()
+        sym_map = cast(Dict[str, Any], values.get("symbol_map", {}) or {})
+        status_lower = (e.status or "").strip().lower()
         for k, v in sym_map.items():
             if isinstance(v, list):
                 if status_lower in v:
@@ -227,7 +238,7 @@ def build_markdown(backlog: Backlog) -> str:
             elif v == status_lower:
                 sym = k
                 break
-        sym = sym or '\u2705'
+        sym = sym or "\u2705"
         lines.append(f"- {sym} Epic {e.id}: {e.title}")
         lines.append(f"  - status: {e.status}")
         # emit epic-level structured fields if present (same as open epics)
@@ -255,7 +266,7 @@ def build_markdown(backlog: Backlog) -> str:
         # preserve epic-level raw lines (strip modeled blocks like notes/description/added/closed)
         if e.raw_lines:
             modeled = set()
-            for k in ('notes', 'description', 'added', 'closed'):
+            for k in ("notes", "description", "added", "closed"):
                 if getattr(e, k, None):
                     modeled.add(k)
             rl = _strip_modeled_blocks_global(list(e.raw_lines), modeled)
@@ -274,7 +285,7 @@ def build_markdown(backlog: Backlog) -> str:
         lines.append("  - tasks:")
         for t in e.tasks:
             task_sym = None
-            status_lower = (t.status or '').strip().lower()
+            status_lower = (t.status or "").strip().lower()
             for k, v in sym_map.items():
                 if isinstance(v, list):
                     if status_lower in v:
@@ -283,7 +294,7 @@ def build_markdown(backlog: Backlog) -> str:
                 elif v == status_lower:
                     task_sym = k
                     break
-            task_sym = task_sym or '\u2610'
+            task_sym = task_sym or "\u2610"
             lines.append(f"    - {task_sym} Task {t.id}: {t.title}")
             lines.append(f"      - status: {t.status}")
             if t.added:
@@ -306,7 +317,7 @@ def build_markdown(backlog: Backlog) -> str:
 
             # Preserve any raw_lines after structured fields for tasks
             if t.raw_lines:
-                modeled_task = {'status', 'added', 'closed', 'description', 'notes'}
+                modeled_task = {"status", "added", "closed", "description", "notes"}
                 rl = _strip_modeled_blocks_global(list(t.raw_lines), modeled_task)
                 for line in rl:
                     lines.append(f"      {line}")

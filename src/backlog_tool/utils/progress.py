@@ -34,7 +34,11 @@ class ProgressBar:
         else:
             eta_str = ""
 
-        print(f"\r{self.description} [{bar}] {percentage:.1f}% ({self.current}/{self.total}){eta_str}", end="", flush=True)
+        print(
+            f"\r{self.description} [{bar}] {percentage:.1f}% ({self.current}/{self.total}){eta_str}",
+            end="",
+            flush=True,
+        )
 
         if self.current >= self.total:
             print()  # New line when complete

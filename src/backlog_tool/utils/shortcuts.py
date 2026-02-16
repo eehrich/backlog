@@ -6,12 +6,7 @@ def handle_command_shortcuts(argv: list[str]) -> list[str]:
     if not argv:
         return argv
 
-    shortcuts = {
-        'a': 'add-task',
-        'e': 'edit',
-        'l': 'list',
-        's': 'show'
-    }
+    shortcuts = {"a": "add-task", "e": "edit", "l": "list", "s": "show"}
 
     first_arg = argv[0]
     if first_arg in shortcuts:

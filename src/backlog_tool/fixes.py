@@ -3,6 +3,7 @@
 This module contains functions for automatically fixing common issues
 and normalizing backlog data.
 """
+
 import re
 from datetime import datetime
 from typing import Any, Dict, Tuple, cast, Optional
@@ -95,29 +96,29 @@ def normalize_backlog_format(backlog: Backlog) -> list[str]:
             n = norm.lower()
             # map symbols or words
             mapped = None
-            sym_map = cast(Dict[str, Any], values.get('symbol_map', {}) or {})
+            sym_map = cast(Dict[str, Any], values.get("symbol_map", {}) or {})
             for k, v in sym_map.items():
                 if k == norm or k == norm.strip():
                     mapped = v
                     break
             if not mapped:
-                word_map = cast(Dict[str, str], values.get('word_map', {}) or {})
+                word_map = cast(Dict[str, str], values.get("word_map", {}) or {})
                 mapped = word_map.get(n, n)
             if mapped != e.status:
                 changes.append(f"epic {e.id} status: {e.status} -> {mapped}")
                 e.status = mapped
     for t in e.tasks:
-            if t.status:
-                n = t.status.strip().lower()
-                word_map = cast(Dict[str, str], values.get('word_map', {}) or {})
-                mapped = word_map.get(n, t.status)
-                if mapped != t.status:
-                    changes.append(f"task {t.id} status: {t.status} -> {mapped}")
-                    t.status = mapped
-            # normalize placeholder closed dates like em-dash '—' or dash
-            if t.closed and t.closed.strip() in ('—', '-', '—'):
-                changes.append(f"task {t.id} closed: {t.closed} -> ''")
-                t.closed = None
+        if t.status:
+            n = t.status.strip().lower()
+            word_map = cast(Dict[str, str], values.get("word_map", {}) or {})
+            mapped = word_map.get(n, t.status)
+            if mapped != t.status:
+                changes.append(f"task {t.id} status: {t.status} -> {mapped}")
+                t.status = mapped
+        # normalize placeholder closed dates like em-dash '—' or dash
+        if t.closed and t.closed.strip() in ("—", "-", "—"):
+            changes.append(f"task {t.id} closed: {t.closed} -> ''")
+            t.closed = None
     return changes
 
 
@@ -139,11 +140,11 @@ def auto_fix_date_formats(backlog: Backlog) -> list[str]:
         date_str = date_str.strip()
 
         # Already ISO format
-        if re.match(r'^\d{4}-\d{2}-\d{2}$', date_str):
+        if re.match(r"^\d{4}-\d{2}-\d{2}$", date_str):
             return None
 
         # MM/DD/YYYY
-        match = re.match(r'^(\d{1,2})/(\d{1,2})/(\d{4})$', date_str)
+        match = re.match(r"^(\d{1,2})/(\d{1,2})/(\d{4})$", date_str)
         if match:
             month, day, year = match.groups()
             try:
@@ -154,7 +155,7 @@ def auto_fix_date_formats(backlog: Backlog) -> list[str]:
                 return None
 
         # DD-MM-YYYY
-        match = re.match(r'^(\d{1,2})-(\d{1,2})-(\d{4})$', date_str)
+        match = re.match(r"^(\d{1,2})-(\d{1,2})-(\d{4})$", date_str)
         if match:
             day, month, year = match.groups()
             try:
@@ -164,7 +165,7 @@ def auto_fix_date_formats(backlog: Backlog) -> list[str]:
                 return None
 
         # YYYY/MM/DD
-        match = re.match(r'^(\d{4})/(\d{1,2})/(\d{1,2})$', date_str)
+        match = re.match(r"^(\d{4})/(\d{1,2})/(\d{1,2})$", date_str)
         if match:
             year, month, day = match.groups()
             try:
@@ -176,6 +177,7 @@ def auto_fix_date_formats(backlog: Backlog) -> list[str]:
         # Try to parse with dateutil if available (more flexible)
         try:
             import dateutil.parser
+
             parsed = dateutil.parser.parse(date_str)
             return parsed.date().isoformat()
         except (ImportError, ValueError):
@@ -269,25 +271,25 @@ def auto_complete_epics(backlog: Backlog) -> list[str]:
     """
     changes: list[str] = []
 
-    finish_list = set(values.get('finish_statuses', ["done", "closed", "complete", "finished"]))
+    finish_list = set(values.get("finish_statuses", ["done", "closed", "complete", "finished"]))
 
     for e in backlog.epics_open + backlog.epics_finished:
-        if not getattr(e, 'tasks', None) or not e.tasks:
+        if not getattr(e, "tasks", None) or not e.tasks:
             continue
 
         # Check if all tasks are finished
         all_finished = True
         for t in e.tasks:
-            st = (t.status or '').strip().lower()
+            st = (t.status or "").strip().lower()
             if st not in finish_list:
                 all_finished = False
                 break
 
         if all_finished:
-            est = (e.status or '').strip().lower()
+            est = (e.status or "").strip().lower()
             if est not in finish_list:
                 # Auto-complete the epic
-                new_status = 'done'  # Default completion status
+                new_status = "done"  # Default completion status
                 changes.append(f"epic {e.id} auto-completed: {e.status or 'open'} -> {new_status}")
                 e.status = new_status
 

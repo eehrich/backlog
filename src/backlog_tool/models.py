@@ -2,6 +2,7 @@
 
 This module contains the core data structures used throughout the backlog system.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

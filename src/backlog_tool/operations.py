@@ -3,6 +3,7 @@
 This module contains functions for creating, reading, updating, and deleting
 epics and tasks in a backlog.
 """
+
 from datetime import date
 from typing import Optional, Tuple
 
@@ -10,7 +11,13 @@ from .models import Backlog, Epic, Task
 from . import values
 
 
-def add_task_to_epic(backlog: Backlog, epic_id: str, title: str, notes: Optional[str] = None, forced_id: Optional[str] = None) -> Task:
+def add_task_to_epic(
+    backlog: Backlog,
+    epic_id: str,
+    title: str,
+    notes: Optional[str] = None,
+    forced_id: Optional[str] = None,
+) -> Task:
     """Add a new task to an existing epic.
 
     Args:
@@ -30,7 +37,9 @@ def add_task_to_epic(backlog: Backlog, epic_id: str, title: str, notes: Optional
     """
     # Build a global set of ids (epic + task) to avoid collisions across epics and tasks
     existing_ids = {e.id for e in backlog.epics_open + backlog.epics_finished}
-    existing_ids.update(t.id for ep in backlog.epics_open + backlog.epics_finished for t in ep.tasks)
+    existing_ids.update(
+        t.id for ep in backlog.epics_open + backlog.epics_finished for t in ep.tasks
+    )
     # normalize forced id if given (pad numeric form to 4 digits)
     if forced_id is not None:
         # Only numeric ids are allowed for consistency.
@@ -69,7 +78,9 @@ def add_task_to_epic(backlog: Backlog, epic_id: str, title: str, notes: Optional
     raise KeyError(f"epic {epic_id} not found")
 
 
-def add_epic_to_backlog(backlog: Backlog, title: str, status: str = 'open', forced_id: Optional[str] = None) -> Epic:
+def add_epic_to_backlog(
+    backlog: Backlog, title: str, status: str = "open", forced_id: Optional[str] = None
+) -> Epic:
     """Create a new epic with a unique zero-padded 4-digit id and append to epics_open.
 
     The id generator finds the next unused numeric id (0000..9999) not present
@@ -113,7 +124,7 @@ def add_epic_to_backlog(backlog: Backlog, title: str, status: str = 'open', forc
     e = Epic(id=new_id, title=title, status=status)
     e.tasks = []
 
-    if status == 'open':
+    if status == "open":
         backlog.epics_open.append(e)
     else:
         backlog.epics_finished.append(e)
@@ -204,7 +215,12 @@ def update_task_status(backlog: Backlog, task_id: str, new_status: str) -> Task:
     _, task = find_task(backlog, task_id)
     task.status = new_status
     lower = (new_status or "").strip().lower()
-    terminal_list = set(values.get('acceptable_terminal', ["done", "reverted", "rejected", "cancelled", "implemented", "fixed", "failed"]))
+    terminal_list = set(
+        values.get(
+            "acceptable_terminal",
+            ["done", "reverted", "rejected", "cancelled", "implemented", "fixed", "failed"],
+        )
+    )
     if lower in terminal_list:
         if not task.closed:
             task.closed = date.today().isoformat()

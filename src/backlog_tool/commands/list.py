@@ -1,4 +1,5 @@
 """List-related commands for the backlog CLI."""
+
 import argparse
 import sys
 from typing import List, Tuple, Optional
@@ -34,17 +35,17 @@ def _sanitize(text: str, max_len: int = 120) -> str:
 
 def _get_epics_and_tasks(backlog: Backlog, state: str, only: str) -> Tuple[List[Epic], List[Task]]:
     """Get filtered epics and tasks based on state and type filters."""
-    epics_open = backlog.epics_open if state in ('open', 'all') else []
-    epics_finished = backlog.epics_finished if state in ('finished', 'all') else []
+    epics_open = backlog.epics_open if state in ("open", "all") else []
+    epics_finished = backlog.epics_finished if state in ("finished", "all") else []
 
     all_epics = epics_open + epics_finished
     all_tasks = []
     for epic in all_epics:
         all_tasks.extend(epic.tasks)
 
-    if only == 'epics':
+    if only == "epics":
         return all_epics, []
-    elif only == 'tasks':
+    elif only == "tasks":
         return [], all_tasks
     else:  # 'all'
         return all_epics, all_tasks
@@ -106,8 +107,8 @@ def cmd_list(args: argparse.Namespace) -> int:
 
     # Get filtered epics and tasks
     # Special case: ids-only mode shows all items regardless of --only setting
-    if getattr(args, 'ids_only', False):
-        epics, tasks = _get_epics_and_tasks(backlog, args.state, 'all')
+    if getattr(args, "ids_only", False):
+        epics, tasks = _get_epics_and_tasks(backlog, args.state, "all")
     else:
         epics, tasks = _get_epics_and_tasks(backlog, args.state, args.only)
 
@@ -118,12 +119,13 @@ def cmd_list(args: argparse.Namespace) -> int:
     if color and sys.stdout.isatty():
         try:
             import colorama
+
             colorama.init()
         except Exception:
             pass
 
     # Handle ids-only mode
-    if getattr(args, 'ids_only', False):
+    if getattr(args, "ids_only", False):
         ids = []
         for epic in epics:
             ids.append(epic.id)
@@ -136,7 +138,7 @@ def cmd_list(args: argparse.Namespace) -> int:
 
     # Regular output mode
     if epics:
-        if args.only == 'all' or (args.only == 'epics' and not getattr(args, 'ids_only', False)):
+        if args.only == "all" or (args.only == "epics" and not getattr(args, "ids_only", False)):
             print("Epics:")
         for epic in epics:
             # Default to inline epic formatting (ID cyan + title yellow) to
@@ -146,14 +148,14 @@ def cmd_list(args: argparse.Namespace) -> int:
             line = _format_epic_inline(epic, color)
             print(line)
             # print single-line description if present (keep it short)
-            if getattr(epic, 'description', None):
-                desc = _sanitize(' '.join(epic.description), max_len=120)
+            if getattr(epic, "description", None):
+                desc = _sanitize(" ".join(epic.description), max_len=120)
                 print(f"  {desc}")
 
     if tasks:
-        if args.only == 'all' and epics:
+        if args.only == "all" and epics:
             print("\nTasks:")
-        elif args.only == 'tasks' and not getattr(args, 'ids_only', False):
+        elif args.only == "tasks" and not getattr(args, "ids_only", False):
             print("Tasks:")
         # No header for tasks-only in ids-only mode
 
@@ -171,8 +173,8 @@ def cmd_list(args: argparse.Namespace) -> int:
                 line = _format_task_line(task, epic, color)
                 print(line)
                 # print a short single-line description if present
-                if getattr(task, 'description', None):
-                    desc = _sanitize(' '.join(task.description), max_len=100)
+                if getattr(task, "description", None):
+                    desc = _sanitize(" ".join(task.description), max_len=100)
                     print(f"  {desc}")
 
     return 0

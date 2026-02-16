@@ -1,4 +1,5 @@
 """Backup-related commands for the backlog CLI."""
+
 import argparse
 import os
 import sys
@@ -13,10 +14,10 @@ def cmd_backup(args: argparse.Namespace) -> int:
     if not os.path.exists(path):
         print(f"ERROR: backlog file not found: {path}", file=sys.stderr)
         return 2
-    
+
     # Get backup configuration from args (set by config loading)
     backup_dir = getattr(args, "backup_dir", None)
-    
+
     if getattr(args, "prune", False):
         # pruning behavior
         keep = getattr(args, "keep", None)
@@ -25,7 +26,9 @@ def cmd_backup(args: argparse.Namespace) -> int:
             keep = getattr(args, "max_backups", 10)
         older = getattr(args, "older_than", None)
         if getattr(args, "dry_run", False):
-            removed = bl.prune_backups(path, keep=keep, older_than_days=older, backup_dir=backup_dir)
+            removed = bl.prune_backups(
+                path, keep=keep, older_than_days=older, backup_dir=backup_dir
+            )
             print("Dry-run: backups that would be removed:")
             for r in removed:
                 print(r)

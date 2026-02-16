@@ -14,10 +14,7 @@ def load_config() -> Dict[str, Union[str, int, bool]]:
     config: Dict[str, Union[str, int, bool]] = {}
 
     # Look for .backlogrc in current directory first, then home directory
-    config_paths = [
-        Path.cwd() / ".backlogrc",
-        Path.home() / ".backlogrc"
-    ]
+    config_paths = [Path.cwd() / ".backlogrc", Path.home() / ".backlogrc"]
 
     config_file = None
     for path in config_paths:
@@ -32,15 +29,15 @@ def load_config() -> Dict[str, Union[str, int, bool]]:
         parser = configparser.ConfigParser()
         parser.read(config_file)
 
-        if 'backlog' in parser:
-            section = parser['backlog']
+        if "backlog" in parser:
+            section = parser["backlog"]
 
             # Map config keys to command line argument names
             config_mappings = {
-                'default_file': 'file',
-                'default_color': 'color',
-                'backup_dir': 'backup_dir',
-                'max_backups': 'max_backups'
+                "default_file": "file",
+                "default_color": "color",
+                "backup_dir": "backup_dir",
+                "max_backups": "max_backups",
             }
 
             for config_key, arg_name in config_mappings.items():
@@ -48,15 +45,15 @@ def load_config() -> Dict[str, Union[str, int, bool]]:
                     value = section[config_key]
 
                     # Handle boolean values for color
-                    if arg_name == 'color':
-                        if value.lower() in ('true', '1', 'yes', 'on'):
+                    if arg_name == "color":
+                        if value.lower() in ("true", "1", "yes", "on"):
                             config[arg_name] = True
-                        elif value.lower() in ('false', '0', 'no', 'off'):
+                        elif value.lower() in ("false", "0", "no", "off"):
                             config[arg_name] = False
                         else:
                             # Keep as string for auto/default values
                             config[arg_name] = value
-                    elif arg_name == 'max_backups':
+                    elif arg_name == "max_backups":
                         # Convert to int for max_backups
                         try:
                             config[arg_name] = int(value)

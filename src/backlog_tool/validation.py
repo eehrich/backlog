@@ -2,6 +2,7 @@
 
 This module contains functions for validating backlog structure and data integrity.
 """
+
 import datetime
 import logging
 from typing import Optional
@@ -89,7 +90,21 @@ def validate_backlog(backlog: Backlog) -> list[str]:
                     errors.append(f"bad date (closed) for task {t.id}: {t.closed}")
 
         # Status values validation
-        allowed = set(values.get('allowed_statuses', ["open", "done", "closed", "complete", "finished", "resolved", "in progress", "todo"]))
+        allowed = set(
+            values.get(
+                "allowed_statuses",
+                [
+                    "open",
+                    "done",
+                    "closed",
+                    "complete",
+                    "finished",
+                    "resolved",
+                    "in progress",
+                    "todo",
+                ],
+            )
+        )
         for e in backlog.epics_open + backlog.epics_finished:
             if e.status and e.status.strip().lower() not in allowed:
                 errors.append(f"unknown epic status for {e.id}: {e.status}")
@@ -98,20 +113,20 @@ def validate_backlog(backlog: Backlog) -> list[str]:
                     errors.append(f"unknown task status for {t.id}: {t.status}")
 
         # Check if epics should be finished
-        finish_list = set(values.get('finish_statuses', ["done", "closed", "complete", "finished"]))
+        finish_list = set(values.get("finish_statuses", ["done", "closed", "complete", "finished"]))
         for e in backlog.epics_open + backlog.epics_finished:
-            if not getattr(e, 'tasks', None):
+            if not getattr(e, "tasks", None):
                 continue
 
             all_finished = True
             for t in e.tasks:
-                st = (t.status or '').strip().lower()
+                st = (t.status or "").strip().lower()
                 if st not in finish_list:
                     all_finished = False
                     break
 
             if all_finished:
-                est = (e.status or '').strip().lower()
+                est = (e.status or "").strip().lower()
                 if est not in finish_list:
                     errors.append(f"epic {e.id} not finished but all tasks are finished")
 

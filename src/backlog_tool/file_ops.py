@@ -3,6 +3,7 @@
 This module handles all file I/O operations including reading, writing,
 backup creation, restoration, and pruning.
 """
+
 import logging
 import os
 import shutil
@@ -33,14 +34,14 @@ def read_file(path: str) -> List[str]:
     logger.debug(f"Reading file: {path}")
 
     try:
-        with open(path, 'r', encoding='utf-8') as f:
+        with open(path, "r", encoding="utf-8") as f:
             lines = f.readlines()
 
         # Ensure all lines end with newlines for consistency
         processed_lines = []
         for line in lines:
-            if not line.endswith('\n'):
-                line += '\n'
+            if not line.endswith("\n"):
+                line += "\n"
             processed_lines.append(line)
 
         logger.info(f"Successfully read {len(processed_lines)} lines from {path}")
@@ -83,7 +84,7 @@ def safe_write(path: str, text: str) -> None:
     try:
         # Ensure the directory exists (only if path contains directories)
         dir_path = os.path.dirname(path)
-        if dir_path and dir_path != '.':
+        if dir_path and dir_path != ".":
             os.makedirs(dir_path, exist_ok=True)
 
         # Write to temporary file first
@@ -128,10 +129,10 @@ def make_backup(path: str) -> str:
     try:
         p = os.path.abspath(path)
         d = os.path.dirname(p)
-        backups_dir = os.path.join(d, '.backups')
+        backups_dir = os.path.join(d, ".backups")
         os.makedirs(backups_dir, exist_ok=True)
 
-        ts = time.strftime('%Y%m%d_%H%M%S')
+        ts = time.strftime("%Y%m%d_%H%M%S")
         base = os.path.basename(p)
         bak = f"{base}.{ts}.bak"
         dest = os.path.join(backups_dir, bak)
@@ -156,11 +157,14 @@ def list_backups(path: str) -> list[str]:
     """
     p = os.path.abspath(path)
     d = os.path.dirname(p)
-    backups_dir = os.path.join(d, '.backups')
+    backups_dir = os.path.join(d, ".backups")
     if not os.path.isdir(backups_dir):
         return []
-    files = [os.path.join(backups_dir, f) for f in os.listdir(backups_dir)
-             if f.startswith(os.path.basename(p) + '.') and f.endswith('.bak')]
+    files = [
+        os.path.join(backups_dir, f)
+        for f in os.listdir(backups_dir)
+        if f.startswith(os.path.basename(p) + ".") and f.endswith(".bak")
+    ]
     # sort by modification time ascending (oldest first)
     files.sort(key=lambda f: os.path.getmtime(f))
     return files
@@ -180,12 +184,14 @@ def restore_backup(path: str, backup_path: str) -> None:
     if not os.path.exists(backup_path):
         raise FileNotFoundError(backup_path)
     # atomic replace
-    tmp = path + '.restore.tmp'
+    tmp = path + ".restore.tmp"
     shutil.copy2(backup_path, tmp)
     os.replace(tmp, path)
 
 
-def prune_backups(path: str, keep: Optional[int] = None, older_than_days: Optional[int] = None) -> List[str]:
+def prune_backups(
+    path: str, keep: Optional[int] = None, older_than_days: Optional[int] = None
+) -> List[str]:
     """Prune backups for `path` by keeping the newest `keep` files and/or removing files older than `older_than_days`.
 
     Args:

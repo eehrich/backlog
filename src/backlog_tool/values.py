@@ -17,24 +17,52 @@ _config: Optional[Dict[str, Any]] = None
 
 def _default_config() -> dict:
     return {
-        'allowed_statuses': [
-            'open', 'done', 'closed', 'complete', 'finished', 'resolved',
-            'in progress', 'todo', 'reverted', 'rejected', 'cancelled', 'failed',
+        "allowed_statuses": [
+            "open",
+            "done",
+            "closed",
+            "complete",
+            "finished",
+            "resolved",
+            "in progress",
+            "todo",
+            "reverted",
+            "rejected",
+            "cancelled",
+            "failed",
         ],
-        'finish_statuses': ['done', 'closed', 'complete', 'finished', 'implemented', 'fixed'],
-        'symbol_map': {
-            '☐': 'open',
-            '✅': 'done',
-            '❌': ['failed', 'cancelled', 'rejected', 'reverted'],
-            '⏳': 'in progress',
+        "finish_statuses": ["done", "closed", "complete", "finished", "implemented", "fixed"],
+        "symbol_map": {
+            "☐": "open",
+            "✅": "done",
+            "❌": ["failed", "cancelled", "rejected", "reverted"],
+            "⏳": "in progress",
         },
-        'word_map': {
-            'done': 'done', 'implemented': 'done', 'finished': 'done', 'resolved': 'done', 'closed': 'done', 'completed': 'done',
-            'open': 'open', 'in progress': 'in progress', 'started': 'in progress',
-            'failed': 'failed', 'reverted': 'reverted', 'rejected': 'rejected',
-            'cancelled': 'cancelled', 'canceled': 'cancelled',
+        "word_map": {
+            "done": "done",
+            "implemented": "done",
+            "finished": "done",
+            "resolved": "done",
+            "closed": "done",
+            "completed": "done",
+            "open": "open",
+            "in progress": "in progress",
+            "started": "in progress",
+            "failed": "failed",
+            "reverted": "reverted",
+            "rejected": "rejected",
+            "cancelled": "cancelled",
+            "canceled": "cancelled",
         },
-        'acceptable_terminal': ['done', 'reverted', 'rejected', 'cancelled', 'implemented', 'fixed', 'failed'],
+        "acceptable_terminal": [
+            "done",
+            "reverted",
+            "rejected",
+            "cancelled",
+            "implemented",
+            "fixed",
+            "failed",
+        ],
     }
 
 
@@ -52,7 +80,7 @@ def load() -> Dict[str, Any]:
 
     # repo root is three parents up from this file: src/scripts/backlog_tool
     repo_root = Path(__file__).resolve().parents[3]
-    cfg_path = Path(os.environ.get('BACKLOG_VALUES', repo_root / 'config' / 'backlog_values.yaml'))
+    cfg_path = Path(os.environ.get("BACKLOG_VALUES", repo_root / "config" / "backlog_values.yaml"))
     if not cfg_path.exists():
         _config = defaults
         return _config
@@ -63,7 +91,7 @@ def load() -> Dict[str, Any]:
         _config = defaults
         return _config
     try:
-        with open(cfg_path, 'r', encoding='utf-8') as fh:
+        with open(cfg_path, "r", encoding="utf-8") as fh:
             data = yaml.safe_load(fh) or {}
             cfg = defaults.copy()
             # shallow merge; lists/dicts from file replace defaults

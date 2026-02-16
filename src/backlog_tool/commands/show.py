@@ -1,4 +1,5 @@
 """Show-related commands for the backlog CLI."""
+
 import argparse
 import sys
 from typing import Optional
@@ -46,32 +47,34 @@ def cmd_show(args: argparse.Namespace) -> int:
 
     # Merge positional ids and legacy --id (stored in legacy_id) for
     # backwards-compatibility. Ensure we have at least one id to show.
-    legacy = getattr(args, 'legacy_id', None) or []
-    positional = getattr(args, 'id', None) or []
+    legacy = getattr(args, "legacy_id", None) or []
+    positional = getattr(args, "id", None) or []
     ids = list(positional) + list(legacy)
-    if not ids and not getattr(args, 'interactive', False):
-        print('ERROR: no id provided', file=sys.stderr)
+    if not ids and not getattr(args, "interactive", False):
+        print("ERROR: no id provided", file=sys.stderr)
         return 2
 
     # Interactive mode: prompt user to select items
-    if not ids and getattr(args, 'interactive', False):
+    if not ids and getattr(args, "interactive", False):
         print("Available items:")
         all_items = []
         idx = 1
         for e in backlog.epics_open + backlog.epics_finished:
             print(f"{idx}. Epic {e.id}: {e.title}")
-            all_items.append(('epic', e.id))
+            all_items.append(("epic", e.id))
             idx += 1
             for t in e.tasks:
                 print(f"{idx}. Task {t.id}: {t.title}")
-                all_items.append(('task', t.id))
+                all_items.append(("task", t.id))
                 idx += 1
         try:
             selections = input("Enter item numbers to show (comma-separated, e.g. 1,3,5): ").strip()
             if not selections:
                 print("No selection made.")
                 return 0
-            selected_indices = [int(x.strip()) - 1 for x in selections.split(',') if x.strip().isdigit()]
+            selected_indices = [
+                int(x.strip()) - 1 for x in selections.split(",") if x.strip().isdigit()
+            ]
             ids = [all_items[i][1] for i in selected_indices if 0 <= i < len(all_items)]
         except (ValueError, IndexError, EOFError):
             print("Invalid input or no items selected.")
@@ -85,6 +88,7 @@ def cmd_show(args: argparse.Namespace) -> int:
     if use_color and sys.stdout.isatty():
         try:
             import colorama
+
             colorama.init()
         except Exception:
             pass
@@ -112,7 +116,7 @@ def cmd_show(args: argparse.Namespace) -> int:
                     if t.closed:
                         print(f"      - closed: {t.closed}")
                     # Print multiline description if present
-                    if getattr(t, 'description', None):
+                    if getattr(t, "description", None):
                         print("      - description:")
                         for line in t.description:
                             print(f"        {line}")
@@ -125,7 +129,10 @@ def cmd_show(args: argparse.Namespace) -> int:
         try:
             epic, task = bl.find_task(backlog, ident)
         except KeyError:
-            print(f"ERROR: id '{ident}' not found. Use 'backlog list' to see available items.", file=sys.stderr)
+            print(
+                f"ERROR: id '{ident}' not found. Use 'backlog list' to see available items.",
+                file=sys.stderr,
+            )
             missing = True
             continue
 
@@ -137,7 +144,7 @@ def cmd_show(args: argparse.Namespace) -> int:
             print(f"  closed: {task.closed}")
         print(f"  Parent Epic: {epic.id}: {epic.title}")
         # Print multiline description if present
-        if getattr(task, 'description', None):
+        if getattr(task, "description", None):
             print("  - description:")
             for line in task.description:
                 print(f"    {line}")

@@ -7,6 +7,7 @@ supports a couple of smoke commands used by tests and CI: `--version`,
 The full tool will live under `scripts/backlog_tool/` and this module will
 be the console entrypoint that imports the library code.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -53,24 +54,43 @@ def _normalize_status(s: str) -> Optional[str]:
         return None
     s0 = s.strip().lower()
     from backlog_tool import values
+
     # prefer escaped codepoints to avoid duplicated literal glyphs being treated as repeated keys
-    SYM = values.get('symbol_map', {
-        '\u2610': 'open', '\u2705': 'done', '\u274c': 'failed', '\u23f3': 'in progress'
-    })
+    SYM = values.get(
+        "symbol_map",
+        {"\u2610": "open", "\u2705": "done", "\u274c": "failed", "\u23f3": "in progress"},
+    )
     if s0 in SYM:
         return SYM[s0]
     import re
-    s_clean = re.sub(r"[^a-z0-9 ]+", '', s0)
-    WORD_MAP = values.get('word_map', {
-        'done': 'done', 'implemented': 'done', 'finished': 'done', 'resolved': 'done', 'closed': 'done', 'completed': 'done',
-        'open': 'open', 'in progress': 'in progress', 'started': 'in progress',
-        'failed': 'failed', 'reverted': 'reverted', 'revert': 'reverted',
-        'rejected': 'rejected', 'reject': 'rejected',
-        'cancelled': 'cancelled', 'canceled': 'cancelled', 'cancel': 'cancelled', 'aborted': 'cancelled'
-    })
+
+    s_clean = re.sub(r"[^a-z0-9 ]+", "", s0)
+    WORD_MAP = values.get(
+        "word_map",
+        {
+            "done": "done",
+            "implemented": "done",
+            "finished": "done",
+            "resolved": "done",
+            "closed": "done",
+            "completed": "done",
+            "open": "open",
+            "in progress": "in progress",
+            "started": "in progress",
+            "failed": "failed",
+            "reverted": "reverted",
+            "revert": "reverted",
+            "rejected": "rejected",
+            "reject": "rejected",
+            "cancelled": "cancelled",
+            "canceled": "cancelled",
+            "cancel": "cancelled",
+            "aborted": "cancelled",
+        },
+    )
     if s_clean in WORD_MAP:
         return WORD_MAP[s_clean]
-    first = s_clean.split()[0] if s_clean else ''
+    first = s_clean.split()[0] if s_clean else ""
     return WORD_MAP.get(first)
 
 
@@ -105,7 +125,7 @@ def cmd_validate(args: argparse.Namespace) -> int:
             # Group errors by type for better readability
             error_types: dict[str, list[str]] = {}
             for error in errors:
-                error_type = error.split(':')[0] if ':' in error else 'other'
+                error_type = error.split(":")[0] if ":" in error else "other"
                 if error_type not in error_types:
                     error_types[error_type] = []
                 error_types[error_type].append(error)
@@ -116,7 +136,10 @@ def cmd_validate(args: argparse.Namespace) -> int:
                     print(f"   - {error}", file=sys.stderr)
                 print(file=sys.stderr)
 
-            print(f"[INFO] Summary: {total_epics} epics ({open_epics} open, {finished_epics} finished), {total_tasks} tasks", file=sys.stderr)
+            print(
+                f"[INFO] Summary: {total_epics} epics ({open_epics} open, {finished_epics} finished), {total_tasks} tasks",
+                file=sys.stderr,
+            )
             return 1
         else:
             # Success case with detailed summary
@@ -127,7 +150,7 @@ def cmd_validate(args: argparse.Namespace) -> int:
             print(f"   - Total tasks: {total_tasks}")
 
             # Show some additional stats if requested
-            if getattr(args, 'verbose', False):
+            if getattr(args, "verbose", False):
                 print()
                 print("[INFO] Details:")
 
@@ -135,7 +158,7 @@ def cmd_validate(args: argparse.Namespace) -> int:
                 status_counts: dict[str, int] = {}
                 for epic in backlog.epics_open + backlog.epics_finished:
                     for task in epic.tasks:
-                        status = task.status or 'unknown'
+                        status = task.status or "unknown"
                         status_counts[status] = status_counts.get(status, 0) + 1
 
                 if status_counts:
@@ -164,9 +187,6 @@ def cmd_validate(args: argparse.Namespace) -> int:
         return 2
 
 
-
-
-
 def _cmd_move_task_bulk(args: argparse.Namespace) -> int:
     """Handle bulk task moves from file."""
     import csv
@@ -178,16 +198,16 @@ def _cmd_move_task_bulk(args: argparse.Namespace) -> int:
         return 2
 
     # Determine file type and parse
-    if file_path.endswith('.json'):
+    if file_path.endswith(".json"):
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
         except json.JSONDecodeError as e:
             print(f"ERROR: Invalid JSON file: {e}", file=sys.stderr)
             return 2
-    elif file_path.endswith('.csv'):
+    elif file_path.endswith(".csv"):
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 reader = csv.DictReader(f)
                 data = list(reader)
         except csv.Error as e:
@@ -202,7 +222,7 @@ def _cmd_move_task_bulk(args: argparse.Namespace) -> int:
         return 2
 
     # Validate data structure
-    required_fields = ['task', 'to_epic']
+    required_fields = ["task", "to_epic"]
     for item in data:
         missing = [field for field in required_fields if field not in item or not item[field]]
         if missing:
@@ -210,6 +230,7 @@ def _cmd_move_task_bulk(args: argparse.Namespace) -> int:
             return 2
 
     from backlog_tool import parser as bl
+
     path = args.file or "backlog.md"
     lines = bl.read_file(path)
     backlog = bl.parse(lines)
@@ -224,18 +245,20 @@ def _cmd_move_task_bulk(args: argparse.Namespace) -> int:
 
     for i, item in enumerate(data):
         try:
-            task_id = _pad_id_input(item['task'])
-            to_epic = _pad_id_input(item['to_epic'])
+            task_id = _pad_id_input(item["task"])
+            to_epic = _pad_id_input(item["to_epic"])
             if task_id is None or to_epic is None:
-                errors.append(f"Row {i+1}: Invalid task or epic ID")
+                errors.append(f"Row {i + 1}: Invalid task or epic ID")
                 continue
             moved = bl.move_task(backlog, task_id, to_epic)
             moved_tasks.append((task_id, to_epic, moved.id))
 
         except KeyError:
-            errors.append(f"Row {i+1}: Task '{item.get('task', 'unknown')}' or epic '{item.get('to_epic', 'unknown')}' not found")
+            errors.append(
+                f"Row {i + 1}: Task '{item.get('task', 'unknown')}' or epic '{item.get('to_epic', 'unknown')}' not found"
+            )
         except Exception as e:
-            errors.append(f"Row {i+1}: Unexpected error: {e}")
+            errors.append(f"Row {i + 1}: Unexpected error: {e}")
 
         if show_progress:
             progress.update()
@@ -264,12 +287,14 @@ def _cmd_move_task_bulk(args: argparse.Namespace) -> int:
 
 def cmd_move_task(args: argparse.Namespace) -> int:
     # Check if we're doing bulk move from file
-    if getattr(args, 'from_file', None):
+    if getattr(args, "from_file", None):
         return _cmd_move_task_bulk(args)
 
     # Validate required arguments for single move
-    if not getattr(args, 'task', None) or not getattr(args, 'to_epic', None):
-        print("ERROR: --task and --to-epic are required when not using --from-file", file=sys.stderr)
+    if not getattr(args, "task", None) or not getattr(args, "to_epic", None):
+        print(
+            "ERROR: --task and --to-epic are required when not using --from-file", file=sys.stderr
+        )
         return 2
 
     from backlog_tool import parser as bl
@@ -277,15 +302,18 @@ def cmd_move_task(args: argparse.Namespace) -> int:
     path = args.file or "backlog.md"
     lines = bl.read_file(path)
     backlog = bl.parse(lines)
-    task_id = _pad_id_input(getattr(args, 'task', None))
-    to_epic = _pad_id_input(getattr(args, 'to_epic', None))
+    task_id = _pad_id_input(getattr(args, "task", None))
+    to_epic = _pad_id_input(getattr(args, "to_epic", None))
     if task_id is None or to_epic is None:
         print("ERROR: Invalid task or epic ID", file=sys.stderr)
         return 2
     try:
         moved = bl.move_task(backlog, task_id, to_epic)
     except KeyError:
-        print(f"ERROR: Task '{task_id}' or epic '{to_epic}' not found. Use 'backlog list' to see available items.", file=sys.stderr)
+        print(
+            f"ERROR: Task '{task_id}' or epic '{to_epic}' not found. Use 'backlog list' to see available items.",
+            file=sys.stderr,
+        )
         return 2
     if getattr(args, "write", False):
         # perform the move and persist
@@ -296,9 +324,6 @@ def cmd_move_task(args: argparse.Namespace) -> int:
     else:
         print(f"Dry-run: moved task {task_id} -> epic {to_epic} (new id: {moved.id})")
     return 0
-
-
-
 
 
 def cmd_edit(args: argparse.Namespace) -> int:
@@ -326,9 +351,9 @@ def cmd_edit(args: argparse.Namespace) -> int:
     backlog = bl.parse(lines)
 
     # Support one or more ids (existing parser already allows `nargs='+'`).
-    raw_ids = list(getattr(args, 'id', []) or [])
+    raw_ids = list(getattr(args, "id", []) or [])
     if not raw_ids:
-        print('ERROR: no id provided', file=sys.stderr)
+        print("ERROR: no id provided", file=sys.stderr)
         return 2
     idents = []
     for rid in raw_ids:
@@ -337,36 +362,38 @@ def cmd_edit(args: argparse.Namespace) -> int:
             idents.append(pid)
 
     if not idents:
-        print('ERROR: no valid ids provided', file=sys.stderr)
+        print("ERROR: no valid ids provided", file=sys.stderr)
         return 2
 
     # collect sets
     sets = {}
-    for s in getattr(args, 'set', []) or []:
-        if '=' not in s:
+    for s in getattr(args, "set", []) or []:
+        if "=" not in s:
             print(f"ERROR: invalid --set value (expected key=value): {s}", file=sys.stderr)
             return 2
-        k, v = s.split('=', 1)
+        k, v = s.split("=", 1)
         sets[k.strip().lower()] = v
 
     # Interactive mode: prompt for fields if no sets provided
-    if not sets and getattr(args, 'interactive', False):
+    if not sets and getattr(args, "interactive", False):
         print("Available fields: title, status, added, closed, notes, description")
         try:
             field_input = input("Enter field to edit (or 'done' to finish): ").strip().lower()
-            while field_input and field_input != 'done':
-                if field_input in ['title', 'status', 'added', 'closed', 'notes', 'description']:
+            while field_input and field_input != "done":
+                if field_input in ["title", "status", "added", "closed", "notes", "description"]:
                     value = input(f"Enter new value for {field_input}: ").strip()
                     sets[field_input] = value
                 else:
-                    print("Invalid field. Available: title, status, added, closed, notes, description")
+                    print(
+                        "Invalid field. Available: title, status, added, closed, notes, description"
+                    )
                 field_input = input("Enter field to edit (or 'done' to finish): ").strip().lower()
         except (EOFError, KeyboardInterrupt):
             print("\nCancelled.")
             return 0
 
     if not sets:
-        print('Nothing to change; provide --set key=value or use --interactive', file=sys.stderr)
+        print("Nothing to change; provide --set key=value or use --interactive", file=sys.stderr)
         return 2
 
     # Helpers reused for each id.
@@ -381,26 +408,32 @@ def cmd_edit(args: argparse.Namespace) -> int:
         for e in backlog.epics_open + backlog.epics_finished:
             if e.id == identifier:
                 return e, None
+
         # Fallback numeric canonical comparison for tasks
         def _canon_id(s: str) -> str:
             s2 = str(s).strip()
             if s2.isdigit():
                 return str(int(s2))
             return s2
+
         try:
             ident_canon = _canon_id(identifier)
         except Exception:
             ident_canon = str(identifier)
         for e in backlog.epics_open + backlog.epics_finished:
-            for t in getattr(e, 'tasks', []) or []:
-                t_id = getattr(t, 'id', None)
+            for t in getattr(e, "tasks", []) or []:
+                t_id = getattr(t, "id", None)
                 if t_id is None:
                     continue
                 try:
                     t_canon = _canon_id(t_id)
                 except Exception:
                     t_canon = str(t_id)
-                if ident_canon == t_canon or str(t_id) == str(identifier) or str(t_id).lstrip('0') == str(identifier).lstrip('0'):
+                if (
+                    ident_canon == t_canon
+                    or str(t_id) == str(identifier)
+                    or str(t_id).lstrip("0") == str(identifier).lstrip("0")
+                ):
                     return e, t
         raise KeyError(identifier)
 
@@ -416,12 +449,12 @@ def cmd_edit(args: argparse.Namespace) -> int:
         while i < len(raw_lines):
             ln = raw_lines[i]
             if key_re.match(ln):
-                base_indent = len(ln) - len(ln.lstrip(' '))
+                base_indent = len(ln) - len(ln.lstrip(" "))
                 i += 1
                 while i < len(raw_lines):
                     nxt = raw_lines[i]
-                    nxt_indent = len(nxt) - len(nxt.lstrip(' '))
-                    if nxt.strip() == '':
+                    nxt_indent = len(nxt) - len(nxt.lstrip(" "))
+                    if nxt.strip() == "":
                         i += 1
                         continue
                     if nxt_indent > base_indent:
@@ -447,47 +480,49 @@ def cmd_edit(args: argparse.Namespace) -> int:
         if task is not None:
             invalid = [k for k in sets.keys() if k not in allowed_task_keys]
             if invalid:
-                print(f"ERROR: invalid task field(s): {', '.join(sorted(invalid))}", file=sys.stderr)
+                print(
+                    f"ERROR: invalid task field(s): {', '.join(sorted(invalid))}", file=sys.stderr
+                )
                 return 2
             for k, v in sets.items():
-                if k == 'title':
+                if k == "title":
                     task.title = v
-                elif k == 'status':
+                elif k == "status":
                     task = bl.update_task_status(backlog, task.id, v)
-                elif k == 'added':
+                elif k == "added":
                     task.added = v
-                elif k == 'closed':
+                elif k == "closed":
                     task.closed = v
-                elif k == 'notes':
+                elif k == "notes":
                     # Normalize incoming notes text into list of lines
-                    vv = v.replace('\\n', '\n')
+                    vv = v.replace("\\n", "\n")
                     normalized: list[str] = []
                     for ln in vv.splitlines():
                         line = ln
                         # Only remove the first '- ' if it's a list marker, not '--' or other patterns
                         stripped = line.lstrip()
-                        if stripped.startswith('- ') and not stripped.startswith('--'):
-                            idx = line.find('- ')
-                            line = line[:idx] + line[idx+2:]
+                        if stripped.startswith("- ") and not stripped.startswith("--"):
+                            idx = line.find("- ")
+                            line = line[:idx] + line[idx + 2 :]
                         normalized.append(line.rstrip())
                     # Replace vs append controlled by --replace-notes flag
-                    if getattr(args, 'replace_notes', False):
+                    if getattr(args, "replace_notes", False):
                         task.notes = normalized
                     else:
-                        if getattr(task, 'notes', None):
+                        if getattr(task, "notes", None):
                             task.notes.extend(normalized)
                         else:
                             task.notes = normalized
-                elif k == 'description':
-                    vv = v.replace('\\n', '\n')
+                elif k == "description":
+                    vv = v.replace("\\n", "\n")
                     normalized_task_desc = []
                     for ln in vv.splitlines():
                         line = ln
                         # Only remove the first '- ' if it's a list marker, not '--' or other patterns
                         stripped = line.lstrip()
-                        if stripped.startswith('- ') and not stripped.startswith('--'):
-                            idx = line.find('- ')
-                            line = line[:idx] + line[idx+2:]
+                        if stripped.startswith("- ") and not stripped.startswith("--"):
+                            idx = line.find("- ")
+                            line = line[:idx] + line[idx + 2 :]
                         normalized_task_desc.append(line.rstrip())
                     task.description = normalized_task_desc
             updated_tasks.append(task.id)
@@ -499,53 +534,53 @@ def cmd_edit(args: argparse.Namespace) -> int:
             print(f"ERROR: invalid epic field(s): {', '.join(sorted(invalid))}", file=sys.stderr)
             return 2
         for k, v in sets.items():
-            if k == 'title':
+            if k == "title":
                 epic.title = v
-            elif k == 'status':
+            elif k == "status":
                 epic.status = v
-            elif k == 'added':
+            elif k == "added":
                 epic.added = v
-                epic.raw_lines = _strip_raw_block(epic.raw_lines, 'added')
-            elif k == 'closed':
+                epic.raw_lines = _strip_raw_block(epic.raw_lines, "added")
+            elif k == "closed":
                 epic.closed = v
-                epic.raw_lines = _strip_raw_block(epic.raw_lines, 'closed')
-            elif k == 'notes':
+                epic.raw_lines = _strip_raw_block(epic.raw_lines, "closed")
+            elif k == "notes":
                 # Normalize incoming notes and append or replace based on flag
-                vv = v.replace('\\n', '\n')
+                vv = v.replace("\\n", "\n")
                 normalized_epic: list[str] = []
                 for ln in vv.splitlines():
                     line = ln
                     # Only remove the first '- ' if it's a list marker, not '--' or other patterns
                     stripped = line.lstrip()
-                    if stripped.startswith('- ') and not stripped.startswith('--'):
-                        idx = line.find('- ')
-                        line = line[:idx] + line[idx+2:]
+                    if stripped.startswith("- ") and not stripped.startswith("--"):
+                        idx = line.find("- ")
+                        line = line[:idx] + line[idx + 2 :]
                     normalized_epic.append(line.rstrip())
-                if getattr(args, 'replace_notes', False):
+                if getattr(args, "replace_notes", False):
                     epic.notes = normalized_epic
                 else:
-                    if getattr(epic, 'notes', None):
+                    if getattr(epic, "notes", None):
                         epic.notes.extend(normalized_epic)
                     else:
                         epic.notes = normalized_epic
-                epic.raw_lines = _strip_raw_block(epic.raw_lines, 'notes')
-            elif k == 'description':
-                vv = v.replace('\\n', '\n')
+                epic.raw_lines = _strip_raw_block(epic.raw_lines, "notes")
+            elif k == "description":
+                vv = v.replace("\\n", "\n")
                 normalized_desc = []
                 for ln in vv.splitlines():
                     line = ln
                     # Only remove the first '- ' if it's a list marker, not '--' or other patterns
                     stripped = line.lstrip()
-                    if stripped.startswith('- ') and not stripped.startswith('--'):
-                        idx = line.find('- ')
-                        line = line[:idx] + line[idx+2:]
+                    if stripped.startswith("- ") and not stripped.startswith("--"):
+                        idx = line.find("- ")
+                        line = line[:idx] + line[idx + 2 :]
                     normalized_desc.append(line.rstrip())
                 epic.description = normalized_desc
-                epic.raw_lines = _strip_raw_block(epic.raw_lines, 'description')
+                epic.raw_lines = _strip_raw_block(epic.raw_lines, "description")
         updated_epics.append(epic.id)
 
     if not updated_tasks and not updated_epics and not missing:
-        print('Nothing updated')
+        print("Nothing updated")
         return 0
 
     single_mode = len(idents) == 1
@@ -555,46 +590,49 @@ def cmd_edit(args: argparse.Namespace) -> int:
         # Peek classification without mutating
         try:
             e_tmp, t_tmp = _find_epic_or_task(idents[0])
-            single_kind = 'task' if t_tmp is not None else 'epic'
+            single_kind = "task" if t_tmp is not None else "epic"
         except KeyError:
             single_kind = None
-    if getattr(args, 'write', False) and (updated_tasks or updated_epics):
+    if getattr(args, "write", False) and (updated_tasks or updated_epics):
         bak = bl.make_backup(path)
         bl.safe_write(path, bl.build_markdown(backlog))
-        if single_mode and single_kind == 'task' and updated_tasks:
+        if single_mode and single_kind == "task" and updated_tasks:
             parent_epic = None
             for e in backlog.epics_open + backlog.epics_finished:
                 if any(t.id == updated_tasks[0] for t in e.tasks):
                     parent_epic = e.id
                     break
             print(f"Updated task {updated_tasks[0]} (Epic {parent_epic})")
-        elif single_mode and single_kind == 'epic' and updated_epics:
+        elif single_mode and single_kind == "epic" and updated_epics:
             print(f"Updated epic {updated_epics[0]}")
         else:
             if updated_epics:
-                print("Updated epics: " + ', '.join(sorted(updated_epics)))
+                print("Updated epics: " + ", ".join(sorted(updated_epics)))
             if updated_tasks:
-                print("Updated tasks: " + ', '.join(sorted(updated_tasks)))
+                print("Updated tasks: " + ", ".join(sorted(updated_tasks)))
         print(f"Wrote changes to {path}; backup: {bak}")
     else:
-        if single_mode and single_kind == 'task' and updated_tasks:
+        if single_mode and single_kind == "task" and updated_tasks:
             parent_epic = None
             for e in backlog.epics_open + backlog.epics_finished:
                 if any(t.id == updated_tasks[0] for t in e.tasks):
                     parent_epic = e.id
                     break
             print(f"Dry-run: updated task {updated_tasks[0]} (Epic {parent_epic})")
-        elif single_mode and single_kind == 'epic' and updated_epics:
+        elif single_mode and single_kind == "epic" and updated_epics:
             print(f"Dry-run: updated epic {updated_epics[0]}")
         else:
             if updated_epics:
-                print("Dry-run: would update epics: " + ', '.join(sorted(updated_epics)))
+                print("Dry-run: would update epics: " + ", ".join(sorted(updated_epics)))
             if updated_tasks:
-                print("Dry-run: would update tasks: " + ', '.join(sorted(updated_tasks)))
+                print("Dry-run: would update tasks: " + ", ".join(sorted(updated_tasks)))
 
     if missing:
         for m in missing:
-            print(f"ERROR: id '{m}' not found. Use 'backlog list' to see available items.", file=sys.stderr)
+            print(
+                f"ERROR: id '{m}' not found. Use 'backlog list' to see available items.",
+                file=sys.stderr,
+            )
         return 2
     return 0
 
@@ -602,11 +640,12 @@ def cmd_edit(args: argparse.Namespace) -> int:
 def cmd_init(args: argparse.Namespace) -> int:
     """Create a new backlog file from the bundled template if it does not exist."""
     import os
+
     path = args.file or "backlog.md"
     if os.path.exists(path):
         print(f"Backlog already exists: {path}")
         return 1
-    tpl = os.path.join(os.path.dirname(__file__), 'backlog_tool', 'template.md')
+    tpl = os.path.join(os.path.dirname(__file__), "backlog_tool", "template.md")
     if not os.path.exists(tpl):
         print(f"ERROR: template not found: {tpl}", file=sys.stderr)
         return 2
@@ -621,6 +660,7 @@ def cmd_init(args: argparse.Namespace) -> int:
 
 def cmd_check_ids(args: argparse.Namespace) -> int:
     from backlog_tool import parser as bl
+
     path = args.file or "backlog.md"
     lines = bl.read_file(path)
     backlog = bl.parse(lines)
@@ -631,6 +671,7 @@ def cmd_check_ids(args: argparse.Namespace) -> int:
         epic_ids.append(e.id)
         for t in e.tasks:
             task_ids.append(t.id)
+
     # Treat numeric ids with/without leading zeros as the same id for
     # duplicate detection (e.g., '13' and '0013'). Canonicalize by
     # converting numeric ids to their integer representation as strings.
@@ -676,7 +717,14 @@ def cmd_fix_format(args: argparse.Namespace) -> int:
     id_format_changes = bl.auto_fix_id_formats(backlog)
     epic_completion_changes = bl.auto_complete_epics(backlog)
 
-    all_changes = id_changes + collision_changes + norm_changes + date_changes + id_format_changes + epic_completion_changes
+    all_changes = (
+        id_changes
+        + collision_changes
+        + norm_changes
+        + date_changes
+        + id_format_changes
+        + epic_completion_changes
+    )
 
     if not all_changes:
         print("No formatting or id issues found")
@@ -701,9 +749,10 @@ def cmd_fix_format(args: argparse.Namespace) -> int:
         # we preserve all authoring and formatting. Otherwise fall back to
         # full reserialization from the normalized model (respecting the
         # parser/writer rules).
-        if getattr(args, 'ids_only', False):
+        if getattr(args, "ids_only", False):
             import re as _re
-            with open(path, 'r', encoding='utf-8') as _f:
+
+            with open(path, "r", encoding="utf-8") as _f:
                 _text = _f.read()
 
             def _replace_with_new(old_id, new_id):
@@ -723,12 +772,20 @@ def cmd_fix_format(args: argparse.Namespace) -> int:
                 for old_id_pattern in old_patterns:
                     # Match the actual format: optional status symbols + "Epic/Task" + ID + ":"
                     # Use count=1 to replace only one occurrence at a time
-                    epic_pattern = rf'((?:☐|✅|❌|⏳|\[ ?\])?\s*Epic\s+){_re.escape(old_id_pattern)}(?=\s*:)'
-                    task_pattern = rf'((?:☐|✅|❌|⏳|\[ ?\])?\s*Task\s+){_re.escape(old_id_pattern)}(?=\s*:)'
+                    epic_pattern = (
+                        rf"((?:☐|✅|❌|⏳|\[ ?\])?\s*Epic\s+){_re.escape(old_id_pattern)}(?=\s*:)"
+                    )
+                    task_pattern = (
+                        rf"((?:☐|✅|❌|⏳|\[ ?\])?\s*Task\s+){_re.escape(old_id_pattern)}(?=\s*:)"
+                    )
 
                     # Replace one occurrence at a time to avoid replacing all duplicates
-                    _text, epic_count = _re.subn(epic_pattern, _replace_with_new(old_id_pattern, new), _text, count=1)
-                    _text, task_count = _re.subn(task_pattern, _replace_with_new(old_id_pattern, new), _text, count=1)
+                    _text, epic_count = _re.subn(
+                        epic_pattern, _replace_with_new(old_id_pattern, new), _text, count=1
+                    )
+                    _text, task_count = _re.subn(
+                        task_pattern, _replace_with_new(old_id_pattern, new), _text, count=1
+                    )
 
                     if epic_count > 0 or task_count > 0:
                         break  # Successfully replaced one occurrence, move to next change
@@ -740,6 +797,7 @@ def cmd_fix_format(args: argparse.Namespace) -> int:
             # runs introduced by earlier edits. Use the parser/writer
             # canonicalization for full reserialize paths instead.
             import re as _re
+
             _text = _re.sub(r"\n{3,}", "\n\n", _text)
 
             bl.safe_write(path, _text)
@@ -821,24 +879,24 @@ def cmd_update(args: argparse.Namespace) -> int:
     import os
     import re
 
-    ppath = os.environ.get('BACKLOG_MD')
+    ppath = os.environ.get("BACKLOG_MD")
     if ppath:
         p = Path(ppath)
     else:
-        p = Path(args.file or 'backlog.md')
+        p = Path(args.file or "backlog.md")
     if not p.exists():
-        print('backlog.md not found at', p)
+        print("backlog.md not found at", p)
         return 4
 
     # validate
-    txt = p.read_text(encoding='utf-8')
-    if txt.count('# Backlog') != 1:
+    txt = p.read_text(encoding="utf-8")
+    if txt.count("# Backlog") != 1:
         print('Expected single "# Backlog" header')
         return 2
     ids = re.findall(r"^\s*(?:☐|✅|❌|⏳)?\s*(?:Epic|Task)\s+(\d{4})\b", txt, flags=re.M)
     dup = {i for i in ids if ids.count(i) > 1}
     if dup:
-        print('Duplicate numeric IDs found:', ', '.join(sorted(dup)))
+        print("Duplicate numeric IDs found:", ", ".join(sorted(dup)))
         return 3
 
     # We'll validate status values, but only inside the Epics sections.
@@ -847,8 +905,9 @@ def cmd_update(args: argparse.Namespace) -> int:
     # sections prevents template placeholders (e.g. "<status> (mandatory)")
     # from being treated as real status lines.
     from backlog_tool import values as bl_values
-    start_open = txt.find('## 1. Epics - open')
-    start_finished = txt.find('## 2. Epics - finished')
+
+    start_open = txt.find("## 1. Epics - open")
+    start_finished = txt.find("## 2. Epics - finished")
     # If the open Epics section is missing, there is nothing to validate or move.
     if start_open == -1:
         return 0
@@ -860,24 +919,29 @@ def cmd_update(args: argparse.Namespace) -> int:
     relevant_text = txt[start_open:]
     status_lines = re.findall(r"^\s*-\s*status:\s*(.+)$", relevant_text, flags=re.M)
     bad = []
-    canonical = set(bl_values.get('allowed_statuses', ['done', 'open', 'failed', 'in progress', 'reverted', 'rejected', 'cancelled']))
+    canonical = set(
+        bl_values.get(
+            "allowed_statuses",
+            ["done", "open", "failed", "in progress", "reverted", "rejected", "cancelled"],
+        )
+    )
     for s in status_lines:
         norm = _normalize_status(s)
         if not norm or norm not in canonical:
             bad.append(s)
     if bad:
-        msg = 'Found unknown status values: ' + ', '.join(sorted(set(bad)))
+        msg = "Found unknown status values: " + ", ".join(sorted(set(bad)))
         try:
             print(msg)
         except UnicodeEncodeError:
-            safe = msg.encode('ascii', errors='backslashreplace').decode('ascii')
+            safe = msg.encode("ascii", errors="backslashreplace").decode("ascii")
             print(safe)
         return 5
 
     # move finished epics
     full = txt
-    start_open = full.find('## 1. Epics - open')
-    start_finished = full.find('## 2. Epics - finished')
+    start_open = full.find("## 1. Epics - open")
+    start_finished = full.find("## 2. Epics - finished")
     if start_open == -1 or start_finished == -1:
         return 0
     prefix = full[:start_open]
@@ -896,13 +960,18 @@ def cmd_update(args: argparse.Namespace) -> int:
         blocks.append((start, end))
 
     moved_blocks = []
-    acceptable_terminal = set(bl_values.get('acceptable_terminal', ['done', 'reverted', 'rejected', 'cancelled', 'implemented', 'fixed']))
+    acceptable_terminal = set(
+        bl_values.get(
+            "acceptable_terminal",
+            ["done", "reverted", "rejected", "cancelled", "implemented", "fixed"],
+        )
+    )
     for start, end in blocks:
-        block_text = ''.join(lines[start:end])
+        block_text = "".join(lines[start:end])
         # Strict: only accept the canonical 'tasks:' heading (no Subtasks synonyms)
         subtasks_match = re.search(r"-\s*tasks:\s*", block_text, flags=re.I)
         if subtasks_match:
-            subtasks_part = block_text[subtasks_match.end():]
+            subtasks_part = block_text[subtasks_match.end() :]
             status_lines = re.findall(r"^\s*-\s*status:\s*(.+)$", subtasks_part, flags=re.M)
         else:
             status_lines = re.findall(r"^\s*-\s*status:\s*(.+)$", block_text, flags=re.M)
@@ -919,43 +988,50 @@ def cmd_update(args: argparse.Namespace) -> int:
     keep_lines = list(lines)
     for start, end, *_ in reversed(moved_blocks):
         del keep_lines[start:end]
-    new_open_text = ''.join(keep_lines)
+    new_open_text = "".join(keep_lines)
 
-    appended = ''
+    appended = ""
     today = date.today().isoformat()
     for _, _, block, *_ in moved_blocks:
         # When moving a finished epic, ensure we record a closing date on
         # the epic (use '- closed: YYYY-MM-DD') rather than an undefined
         # '- updated:' field. Insert the closed date after the epic header
         # line if it isn't already present.
-        if '- closed:' not in block:
+        if "- closed:" not in block:
             parts = block.splitlines(keepends=True)
             if len(parts) >= 1:
                 # use two-space indentation consistent with other epic fields
                 parts.insert(1, f"  - closed: {today}\n")
-            block = ''.join(parts)
-        appended += '\n' + block
+            block = "".join(parts)
+        appended += "\n" + block
 
-    if not new_open_text.endswith('\n'):
-        new_open_text += '\n'
+    if not new_open_text.endswith("\n"):
+        new_open_text += "\n"
 
     m = re.search(r"^##\s*2\.\s*Epics\s*-\s*finished.*?$", full, flags=re.M)
     if not m:
-        new_txt = prefix + new_open_text + finished_text + appended + '\n'
+        new_txt = prefix + new_open_text + finished_text + appended + "\n"
     else:
         header_end = m.end()
         insertion_pos = header_end
-        while insertion_pos < len(full) and full[insertion_pos] in ('\n', '\r'):
+        while insertion_pos < len(full) and full[insertion_pos] in ("\n", "\r"):
             insertion_pos += 1
-        new_txt = prefix + new_open_text + full[start_finished:insertion_pos] + appended + full[insertion_pos:]
+        new_txt = (
+            prefix
+            + new_open_text
+            + full[start_finished:insertion_pos]
+            + appended
+            + full[insertion_pos:]
+        )
 
     # write atomically
     import tempfile
     import os
+
     dirp = p.parent
     fd, tmppath = tempfile.mkstemp(dir=dirp)
     try:
-        with os.fdopen(fd, 'w', encoding='utf-8') as fh:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
             fh.write(new_txt)
         os.replace(tmppath, str(p))
     finally:
@@ -991,7 +1067,7 @@ def cmd_completion(args: argparse.Namespace) -> int:
 
 def _generate_bash_completion() -> str:
     """Generate bash completion script."""
-    return '''# backlog bash completion
+    return """# backlog bash completion
 # Install with: source <(backlog completion bash)
 # Or add to ~/.bashrc: eval "$(backlog completion bash)"
 
@@ -1117,12 +1193,12 @@ _backlog_complete() {
 
 complete -F _backlog_complete backlog
 complete -F _backlog_complete backlog.exe
-'''
+"""
 
 
 def _generate_zsh_completion() -> str:
     """Generate zsh completion script."""
-    return '''# backlog zsh completion
+    return """# backlog zsh completion
 # Install with: backlog completion zsh > /usr/local/share/zsh/site-functions/_backlog
 # Or add to ~/.zshrc: autoload -U compinit && compinit
 
@@ -1263,7 +1339,7 @@ _backlog() {
                 "--help[Show help message]"
             ;;
     esac
-}'''
+}"""
 
 
 def _generate_fish_completion() -> str:
@@ -1389,10 +1465,10 @@ def _install_completion_script(script: str, shell: str, custom_path: Optional[st
                 # Create or update .bashrc to source the completion
                 bashrc_content = ""
                 if bashrc_path.exists():
-                    bashrc_content = bashrc_path.read_text(encoding='utf-8')
+                    bashrc_content = bashrc_path.read_text(encoding="utf-8")
 
                 # Remove any existing Windows-style source lines
-                lines = bashrc_content.split('\n')
+                lines = bashrc_content.split("\n")
                 filtered_lines: list[str] = []
                 skip_next = False
                 for line in lines:
@@ -1400,22 +1476,25 @@ def _install_completion_script(script: str, shell: str, custom_path: Optional[st
                         skip_next = False
                         continue
                     # Skip Windows-style source lines for backlog completion
-                    if line.strip().startswith('source C:') and '.backlog-completion.bash' in line:
+                    if line.strip().startswith("source C:") and ".backlog-completion.bash" in line:
                         # Also skip the comment line above it
-                        if filtered_lines and filtered_lines[-1].strip() == '# Backlog CLI completion':
+                        if (
+                            filtered_lines
+                            and filtered_lines[-1].strip() == "# Backlog CLI completion"
+                        ):
                             filtered_lines.pop()
                         continue
                     filtered_lines.append(line)
 
-                bashrc_content = '\n'.join(filtered_lines)
+                bashrc_content = "\n".join(filtered_lines)
 
                 # Check if completion is already sourced with Unix path
                 source_line = "source ~/.backlog-completion.bash"
                 if source_line not in bashrc_content:
-                    if bashrc_content and not bashrc_content.endswith('\n'):
-                        bashrc_content += '\n'
-                    bashrc_content += f'\n# Backlog CLI completion\n{source_line}\n'
-                    bashrc_path.write_text(bashrc_content, encoding='utf-8')
+                    if bashrc_content and not bashrc_content.endswith("\n"):
+                        bashrc_content += "\n"
+                    bashrc_content += f"\n# Backlog CLI completion\n{source_line}\n"
+                    bashrc_path.write_text(bashrc_content, encoding="utf-8")
                     print("✅ Updated ~/.bashrc to source completion")
             else:
                 # Standard Linux/Unix approach
@@ -1447,11 +1526,11 @@ def _install_completion_script(script: str, shell: str, custom_path: Optional[st
         if install_path is None:
             print("ERROR: Could not determine installation path", file=sys.stderr)
             return 1
-        install_path.write_text(script, encoding='utf-8')
+        install_path.write_text(script, encoding="utf-8")
 
         # Convert path to Unix-style for display in bash environments
         if shell == "bash" and platform.system() == "Windows":
-            display_path = install_path.as_posix().replace('C:', '/c')
+            display_path = install_path.as_posix().replace("C:", "/c")
         else:
             display_path = str(install_path)
 
@@ -1511,91 +1590,145 @@ SAFETY: Use --write to persist changes. All operations create backups automatica
 COLOR: Auto-detected; use --color/--no-color to override.
 FILES: Default is backlog.md; use --file to specify alternative.
 """,
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p.add_argument("--version", action="store_true", help="Show version and exit")
     p.add_argument("--file", help="Backlog file to operate on (default: backlog.md)")
-    p.add_argument("--color", dest="color", action="store_true", help="Enable ANSI colorized output")
-    p.add_argument("--no-color", dest="color", action="store_false", help="Disable ANSI colorized output")
-    p.add_argument("--backup-dir", help="Directory to store backup files (default: same as backlog file)")
-    p.add_argument("--max-backups", type=int, help="Maximum number of backups to keep (default: 10)")
+    p.add_argument(
+        "--color", dest="color", action="store_true", help="Enable ANSI colorized output"
+    )
+    p.add_argument(
+        "--no-color", dest="color", action="store_false", help="Disable ANSI colorized output"
+    )
+    p.add_argument(
+        "--backup-dir", help="Directory to store backup files (default: same as backlog file)"
+    )
+    p.add_argument(
+        "--max-backups", type=int, help="Maximum number of backups to keep (default: 10)"
+    )
 
     sub = p.add_subparsers(dest="cmd", metavar="COMMAND", help="Available commands:")
 
-    v = sub.add_parser("validate",
-                      help="Validate backlog file for errors and inconsistencies",
-                      description="Validate the backlog file for common issues like duplicate IDs, invalid dates, and malformed entries.")
+    v = sub.add_parser(
+        "validate",
+        help="Validate backlog file for errors and inconsistencies",
+        description="Validate the backlog file for common issues like duplicate IDs, invalid dates, and malformed entries.",
+    )
     # Standardized option ordering: positional → required → optional → file → safety → output
     v.add_argument("--verbose", action="store_true", help="Show detailed validation statistics")
-    v.add_argument("--file", help="Backlog file to operate on (default: backlog.md)", default=argparse.SUPPRESS)
+    v.add_argument(
+        "--file", help="Backlog file to operate on (default: backlog.md)", default=argparse.SUPPRESS
+    )
     v.set_defaults(func=cmd_validate)
 
-    a = sub.add_parser("add-task",
-                       help="Add a new task to an epic",
-                       description="Add a new task to an existing epic. Use --write to persist changes. The task will be added with 'open' status and today's date. Use --from-file for bulk operations.")
+    a = sub.add_parser(
+        "add-task",
+        help="Add a new task to an epic",
+        description="Add a new task to an existing epic. Use --write to persist changes. The task will be added with 'open' status and today's date. Use --from-file for bulk operations.",
+    )
     # Standardized option ordering: positional → required → optional → file → safety → output
     a.add_argument("--title", help="Task title (required unless --from-file is used)")
-    a.add_argument("--epic", help="Epic id to add the task under (required with --write unless --from-file specifies epics)")
+    a.add_argument(
+        "--epic",
+        help="Epic id to add the task under (required with --write unless --from-file specifies epics)",
+    )
     a.add_argument("--notes", help="Optional notes text (use \\n for line breaks)")
     a.add_argument("--description", help="Optional description text (use \\n for line breaks)")
-    a.add_argument("--id", dest="forced_id", help="Force a specific Task id (numeric or string). Will error if id exists")
-    a.add_argument("--from-file", help="CSV/JSON file with tasks to add (columns: title,epic,notes,id)")
+    a.add_argument(
+        "--id",
+        dest="forced_id",
+        help="Force a specific Task id (numeric or string). Will error if id exists",
+    )
+    a.add_argument(
+        "--from-file", help="CSV/JSON file with tasks to add (columns: title,epic,notes,id)"
+    )
     a.add_argument("--file", help="Backlog file to operate on (default: backlog.md)")
     a.add_argument("--write", action="store_true", help="Persist changes to file (creates backup)")
     a.set_defaults(func=add.cmd_add_task)
 
-    ae = sub.add_parser("add-epic",
-                       help="Create a new epic",
-                       description="Add a new epic to the backlog. Use --write to persist changes. The epic will be added with 'open' status and today's date. Use --from-file for bulk operations.")
+    ae = sub.add_parser(
+        "add-epic",
+        help="Create a new epic",
+        description="Add a new epic to the backlog. Use --write to persist changes. The epic will be added with 'open' status and today's date. Use --from-file for bulk operations.",
+    )
     # Standardized option ordering: positional → required → optional → file → safety → output
     ae.add_argument("--title", help="Epic title (required unless --from-file is used)")
     ae.add_argument("--description", help="Optional description text (use \\n for line breaks)")
-    ae.add_argument("--id", dest="forced_id", help="Force a specific Epic id (numeric or string). Will error if id exists")
+    ae.add_argument(
+        "--id",
+        dest="forced_id",
+        help="Force a specific Epic id (numeric or string). Will error if id exists",
+    )
     ae.add_argument("--from-file", help="CSV/JSON file with epics to add (columns: title,id)")
     ae.add_argument("--file", help="Backlog file to operate on (default: backlog.md)")
     ae.add_argument("--write", action="store_true", help="Persist changes to file (creates backup)")
     ae.set_defaults(func=add.cmd_add_epic)
 
-    m = sub.add_parser("move-task",
-                      help="Move a task between epics",
-                      description="Move an existing task from one epic to another. Use --write to persist changes. Use --from-file for bulk operations.")
+    m = sub.add_parser(
+        "move-task",
+        help="Move a task between epics",
+        description="Move an existing task from one epic to another. Use --write to persist changes. Use --from-file for bulk operations.",
+    )
     # Standardized option ordering: positional → required → optional → file → safety → output
     m.add_argument("--task", help="Task id to move (required unless --from-file is used)")
     m.add_argument("--to-epic", help="Destination epic id (required unless --from-file is used)")
-    m.add_argument("--from-file", help="CSV/JSON file with moves to perform (columns: task,to_epic)")
+    m.add_argument(
+        "--from-file", help="CSV/JSON file with moves to perform (columns: task,to_epic)"
+    )
     m.add_argument("--file", help="Backlog file to operate on (default: backlog.md)")
     m.add_argument("--write", action="store_true", help="Persist changes to file (creates backup)")
     m.set_defaults(func=cmd_move_task)
 
     # Replace legacy update-status with a more general `edit` command that
     # can set arbitrary fields on epics or tasks.
-    u = sub.add_parser("edit",
-                      help="Edit epic or task fields",
-                      description="Update fields on one or more epics/tasks. Supports bulk updates with --set key=value. Use multiple --set for multiple fields.")
+    u = sub.add_parser(
+        "edit",
+        help="Edit epic or task fields",
+        description="Update fields on one or more epics/tasks. Supports bulk updates with --set key=value. Use multiple --set for multiple fields.",
+    )
     # Standardized option ordering: positional → required → optional → file → safety → output
     u.add_argument("id", nargs="+", help="Epic or Task numeric id(s) (0001)")
-    u.add_argument("--set", dest="set", action="append", help="Set a field: --set key=value (can be used multiple times)")
+    u.add_argument(
+        "--set",
+        dest="set",
+        action="append",
+        help="Set a field: --set key=value (can be used multiple times)",
+    )
     u.add_argument("--file", help="Backlog file to operate on (default: backlog.md)")
-    u.add_argument("--interactive", action="store_true", help="Interactively prompt for fields to edit")
-    u.add_argument("--replace-notes", action="store_true", help="Replace notes instead of appending (default: append)")
+    u.add_argument(
+        "--interactive", action="store_true", help="Interactively prompt for fields to edit"
+    )
+    u.add_argument(
+        "--replace-notes",
+        action="store_true",
+        help="Replace notes instead of appending (default: append)",
+    )
     u.add_argument("--write", action="store_true", help="Persist changes to file (creates backup)")
     u.set_defaults(func=cmd_edit)
 
-    b = sub.add_parser("backup",
-                      help="Create or manage backups",
-                      description="Create timestamped backups of the backlog file or manage existing backups. Use --prune with --keep or --older-than to clean up old backups.")
+    b = sub.add_parser(
+        "backup",
+        help="Create or manage backups",
+        description="Create timestamped backups of the backlog file or manage existing backups. Use --prune with --keep or --older-than to clean up old backups.",
+    )
     # Standardized option ordering: positional → required → optional → file → safety → output
-    b.add_argument("--prune", action="store_true", help="Remove old backups instead of creating a new one")
+    b.add_argument(
+        "--prune", action="store_true", help="Remove old backups instead of creating a new one"
+    )
     b.add_argument("--keep", type=int, help="When pruning, keep the newest N backups (default: 10)")
     b.add_argument("--older-than", type=int, help="When pruning, remove backups older than N days")
     b.add_argument("--file", help="Backlog file to operate on (default: backlog.md)")
-    b.add_argument("--dry-run", action="store_true", help="Show which backups would be removed (with --prune)")
+    b.add_argument(
+        "--dry-run", action="store_true", help="Show which backups would be removed (with --prune)"
+    )
     b.add_argument("--yes", action="store_true", help="Confirm destructive prune without prompt")
     b.set_defaults(func=backup_cmd.cmd_backup)
 
-    r = sub.add_parser("undo",
-                      help="Restore from backup",
-                      description="Restore the backlog file from a previous backup. Use --list to see available backups, --choose for interactive selection, or --backup for specific file.")
+    r = sub.add_parser(
+        "undo",
+        help="Restore from backup",
+        description="Restore the backlog file from a previous backup. Use --list to see available backups, --choose for interactive selection, or --backup for specific file.",
+    )
     # Standardized option ordering: positional → required → optional → file → safety → output
     r.add_argument("--list", action="store_true", help="List available backups and exit")
     r.add_argument("--choose", action="store_true", help="Interactively choose a backup to restore")
@@ -1603,79 +1736,127 @@ FILES: Default is backlog.md; use --file to specify alternative.
     r.add_argument("--file", help="Backlog file to operate on (default: backlog.md)")
     r.set_defaults(func=cmd_undo)
 
-    c = sub.add_parser("check-ids",
-                      help="Check for duplicate IDs",
-                      description="Scan the backlog for duplicate task IDs and epic/task ID collisions.")
+    c = sub.add_parser(
+        "check-ids",
+        help="Check for duplicate IDs",
+        description="Scan the backlog for duplicate task IDs and epic/task ID collisions.",
+    )
     # Standardized option ordering: positional → required → optional → file → safety → output
     c.add_argument("--file", help="Backlog file to operate on (default: backlog.md)")
     c.set_defaults(func=cmd_check_ids)
 
-    f = sub.add_parser("fix-format",
-                      help="Auto-fix formatting issues",
-                      description="Normalize status tokens, fix date formats, and reassign duplicate IDs. Use --ids-only for safe ID-only fixes.")
+    f = sub.add_parser(
+        "fix-format",
+        help="Auto-fix formatting issues",
+        description="Normalize status tokens, fix date formats, and reassign duplicate IDs. Use --ids-only for safe ID-only fixes.",
+    )
     # Standardized option ordering: positional → required → optional → file → safety → output
-    f.add_argument("--ids-only", action="store_true", dest="ids_only",
-                   help="When writing, only rewrite numeric Task/Epic ids and leave formatting intact")
+    f.add_argument(
+        "--ids-only",
+        action="store_true",
+        dest="ids_only",
+        help="When writing, only rewrite numeric Task/Epic ids and leave formatting intact",
+    )
     f.add_argument("--file", help="Backlog file to operate on (default: backlog.md)")
-    f.add_argument("--write", action="store_true", help="Apply fixes and persist to file (creates backup)")
+    f.add_argument(
+        "--write", action="store_true", help="Apply fixes and persist to file (creates backup)"
+    )
     f.set_defaults(func=cmd_fix_format)
 
     # legacy compatibility: expose the `update` command used by older scripts/tests
-    up = sub.add_parser("update",
-                       help="Move finished epics",
-                       description="Legacy command: validate and move finished epics from open to finished section.")
+    up = sub.add_parser(
+        "update",
+        help="Move finished epics",
+        description="Legacy command: validate and move finished epics from open to finished section.",
+    )
     # Standardized option ordering: positional → required → optional → file → safety → output
     up.add_argument("--file", help="Backlog file to operate on (default: backlog.md)")
     up.set_defaults(func=cmd_update)
 
-    ini = sub.add_parser("init",
-                        help="Create new backlog file",
-                        description="Create a new backlog.md file from the bundled template if it doesn't exist.")
+    ini = sub.add_parser(
+        "init",
+        help="Create new backlog file",
+        description="Create a new backlog.md file from the bundled template if it doesn't exist.",
+    )
     # Standardized option ordering: positional → required → optional → file → safety → output
     ini.add_argument("--file", help="Backlog file to create (default: backlog.md)")
     ini.set_defaults(func=lambda args: cmd_init(args))
 
-    ls = sub.add_parser("list",
-                       help="List epics and tasks",
-                       description="List all epic and task IDs with their titles. Use filters to show specific subsets. Combine --state and --only for precise filtering.")
+    ls = sub.add_parser(
+        "list",
+        help="List epics and tasks",
+        description="List all epic and task IDs with their titles. Use filters to show specific subsets. Combine --state and --only for precise filtering.",
+    )
     # Standardized option ordering: positional → required → optional → file → safety → output
-    ls.add_argument("--state", choices=["open", "finished", "all"], default="open",
-                    help="Filter by epic state (default: open)")
-    ls.add_argument("--only", choices=["epics", "tasks", "all"], default="epics",
-                    help="Show only epics, only tasks, or all (default: epics)")
-    ls.add_argument("--ids-only", action="store_true", dest="ids_only",
-                    help="Print only numeric ids, one per line")
+    ls.add_argument(
+        "--state",
+        choices=["open", "finished", "all"],
+        default="open",
+        help="Filter by epic state (default: open)",
+    )
+    ls.add_argument(
+        "--only",
+        choices=["epics", "tasks", "all"],
+        default="epics",
+        help="Show only epics, only tasks, or all (default: epics)",
+    )
+    ls.add_argument(
+        "--ids-only",
+        action="store_true",
+        dest="ids_only",
+        help="Print only numeric ids, one per line",
+    )
     ls.add_argument("--file", help="Backlog file to operate on (default: backlog.md)")
     # color tri-state: --color, --no-color; default None means auto-detect tty
     g = ls.add_mutually_exclusive_group()
-    g.add_argument("--color", dest="color", action="store_true", help="Enable ANSI colorized output")
-    g.add_argument("--no-color", dest="color", action="store_false", help="Disable ANSI colorized output")
+    g.add_argument(
+        "--color", dest="color", action="store_true", help="Enable ANSI colorized output"
+    )
+    g.add_argument(
+        "--no-color", dest="color", action="store_false", help="Disable ANSI colorized output"
+    )
     ls.set_defaults(color=True)
     ls.set_defaults(func=list_cmd.cmd_list)
 
-    sh = sub.add_parser("show",
-                       help="Show detailed information",
-                       description="Show detailed information for one or more epic/task IDs. Accepts multiple IDs and supports both epic and task identifiers.")
+    sh = sub.add_parser(
+        "show",
+        help="Show detailed information",
+        description="Show detailed information for one or more epic/task IDs. Accepts multiple IDs and supports both epic and task identifiers.",
+    )
     # Standardized option ordering: positional → required → optional → file → safety → output
     sh.add_argument("id", nargs="*", help="Epic or Task numeric id(s) (0001)")
     # Backwards-compatibility: accept legacy `--id` into `legacy_id` and
     # merge with positional ids inside `cmd_show`.
     sh.add_argument("--id", dest="legacy_id", nargs="+", help=argparse.SUPPRESS)
     sh.add_argument("--file", help="Backlog file to operate on (default: backlog.md)")
-    sh.add_argument("--interactive", action="store_true", help="Interactively select items to show if no IDs provided")
+    sh.add_argument(
+        "--interactive",
+        action="store_true",
+        help="Interactively select items to show if no IDs provided",
+    )
     # color tri-state: --color, --no-color; default None means auto-detect tty
     g2 = sh.add_mutually_exclusive_group()
-    g2.add_argument("--color", dest="color", action="store_true", help="Enable ANSI colorized output")
-    g2.add_argument("--no-color", dest="color", action="store_false", help="Disable ANSI colorized output")
+    g2.add_argument(
+        "--color", dest="color", action="store_true", help="Enable ANSI colorized output"
+    )
+    g2.add_argument(
+        "--no-color", dest="color", action="store_false", help="Disable ANSI colorized output"
+    )
     sh.set_defaults(color=True)
     sh.set_defaults(func=show_cmd.cmd_show)
 
-    comp = sub.add_parser("completion",
-                         help="Generate shell completion scripts",
-                         description="Generate shell completion scripts for bash, zsh, or fish. Install the generated script to enable tab completion for backlog commands.")
+    comp = sub.add_parser(
+        "completion",
+        help="Generate shell completion scripts",
+        description="Generate shell completion scripts for bash, zsh, or fish. Install the generated script to enable tab completion for backlog commands.",
+    )
     # Standardized option ordering: positional → required → optional → file → safety → output
-    comp.add_argument("shell", choices=["bash", "zsh", "fish"], help="Shell type to generate completion for")
-    comp.add_argument("--install", action="store_true", help="Install completion script to shell config directory")
+    comp.add_argument(
+        "shell", choices=["bash", "zsh", "fish"], help="Shell type to generate completion for"
+    )
+    comp.add_argument(
+        "--install", action="store_true", help="Install completion script to shell config directory"
+    )
     comp.add_argument("--path", help="Custom installation path (with --install)")
     comp.set_defaults(func=cmd_completion)
 
@@ -1705,7 +1886,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     # Apply configuration defaults for arguments that weren't provided
     # We can detect this by checking if the argument value matches the action's default
     # Skip certain arguments that are commonly overridden or have complex detection
-    skip_config_keys = {'color'}  # Skip color since --color/--no-color detection is unreliable
+    skip_config_keys = {"color"}  # Skip color since --color/--no-color detection is unreliable
 
     for key, value in config.items():
         if key in skip_config_keys:
@@ -1715,7 +1896,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             # If it matches the default, it probably wasn't provided
             action = None
             for a in parser._actions:
-                if hasattr(a, 'dest') and a.dest == key:
+                if hasattr(a, "dest") and a.dest == key:
                     action = a
                     break
 

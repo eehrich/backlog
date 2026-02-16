@@ -3,6 +3,7 @@
 This module serves as the main entry point for parsing backlog files and
 provides access to all parsing, building, and manipulation functionality.
 """
+
 from __future__ import annotations
 
 import logging
@@ -73,27 +74,27 @@ def parse(backlog_lines: List[str]) -> Backlog:
                 s = ln.strip()
 
                 # detect section headers
-                if s.startswith('## 1. Epics - open'):
+                if s.startswith("## 1. Epics - open"):
                     # Preserve the marker line in the header so the writer can
                     # splice generated Epics content in-place at the exact
                     # position originally present in the template.
                     header.append(ln)
-                    section = 'epics_open'
+                    section = "epics_open"
                     seen_epics_section = True
                     logger.debug(f"Found epics_open section at line {line_num}")
                     continue
-                if s.startswith('## 2. Epics - finished'):
+                if s.startswith("## 2. Epics - finished"):
                     # Preserve finished marker similarly
                     header.append(ln)
-                    section = 'epics_finished'
+                    section = "epics_finished"
                     seen_epics_section = True
                     logger.debug(f"Found epics_finished section at line {line_num}")
                     continue
 
                 # Any other top-level '##' header after we've seen the Epics sections
                 # should be treated as the start of the footer
-                if s.startswith('## ') and seen_epics_section:
-                    section = 'footer'
+                if s.startswith("## ") and seen_epics_section:
+                    section = "footer"
                     logger.debug(f"Found footer section at line {line_num}")
                     footer.append(ln)
                     current_epic = None
@@ -121,7 +122,9 @@ def parse(backlog_lines: List[str]) -> Backlog:
                             epics_finished.append(current_epic)
                             logger.debug(f"Added epic {eid} to finished section")
                         else:
-                            logger.warning(f"Epic {eid} found in unexpected section '{section}' at line {line_num}")
+                            logger.warning(
+                                f"Epic {eid} found in unexpected section '{section}' at line {line_num}"
+                            )
 
                         # reset current task context when a new epic starts
                         current_task = None
@@ -154,7 +157,7 @@ def parse(backlog_lines: List[str]) -> Backlog:
                     continue
 
                 # Calculate indent before any processing
-                indent = len(ln) - len(ln.lstrip(' '))
+                indent = len(ln) - len(ln.lstrip(" "))
 
                 # Handle multiline field collection FIRST (before checking RE_FIELD_LINE)
                 # This prevents lines like "- api_key: value" from being parsed as fields
@@ -174,7 +177,11 @@ def parse(backlog_lines: List[str]) -> Backlog:
                             # to prevent double '- - ' prefixes on round-trip edits.
                             # Description content preserves '- ' as it's user content (bullet lists).
                             content = text
-                            if name == "notes" and content.startswith('- ') and not content.startswith('--'):
+                            if (
+                                name == "notes"
+                                and content.startswith("- ")
+                                and not content.startswith("--")
+                            ):
                                 # Remove the leading '- ' but preserve content after it
                                 content = content[2:]
 
@@ -195,7 +202,9 @@ def parse(backlog_lines: List[str]) -> Backlog:
                             current_collect = None
                             # Fall through to process this line as a potential field
                     except Exception as e:
-                        parse_errors.append(f"Failed to collect multiline field at line {line_num}: {e}")
+                        parse_errors.append(
+                            f"Failed to collect multiline field at line {line_num}: {e}"
+                        )
                         logger.error(f"Multiline collection error at line {line_num}: {e}")
                         current_collect = None
                         # Fall through to try parsing as field
@@ -266,7 +275,7 @@ def parse(backlog_lines: List[str]) -> Backlog:
                         continue
 
                 # fallback: preserve in raw_lines or header/footer
-                if section == 'footer':
+                if section == "footer":
                     footer.append(ln)
                     continue
 
@@ -297,31 +306,57 @@ def parse(backlog_lines: List[str]) -> Backlog:
         logger.warning(f"Encountered {len(parse_errors)} parsing errors: {parse_errors[:3]}...")
         # Don't fail completely, but log the issues
 
-    return Backlog(header=header, epics_open=epics_open, epics_finished=epics_finished, footer=footer)
+    return Backlog(
+        header=header, epics_open=epics_open, epics_finished=epics_finished, footer=footer
+    )
 
 
 # Re-export all functions for backward compatibility
 __all__ = [
     # Models
-    'Backlog', 'Epic', 'Task',
+    "Backlog",
+    "Epic",
+    "Task",
     # File operations
-    'read_file', 'safe_write', 'make_backup', 'list_backups', 'restore_backup', 'prune_backups',
+    "read_file",
+    "safe_write",
+    "make_backup",
+    "list_backups",
+    "restore_backup",
+    "prune_backups",
     # Parsing
-    'parse',
+    "parse",
     # Building
-    'build_markdown',
+    "build_markdown",
     # Operations
-    'add_task_to_epic', 'add_epic_to_backlog', 'find_task', 'move_task', 'update_task_status',
+    "add_task_to_epic",
+    "add_epic_to_backlog",
+    "find_task",
+    "move_task",
+    "update_task_status",
     # Fixes
-    'reassign_duplicate_task_ids', 'reassign_epic_task_collisions', 'normalize_backlog_format',
-    'auto_fix_date_formats', 'auto_fix_id_formats', 'auto_complete_epics',
+    "reassign_duplicate_task_ids",
+    "reassign_epic_task_collisions",
+    "normalize_backlog_format",
+    "auto_fix_date_formats",
+    "auto_fix_id_formats",
+    "auto_complete_epics",
 ]
 
 
-def add_task_to_epic(backlog: Backlog, epic_id: str, title: str, notes: Optional[str] = None, description: Optional[str] = None, forced_id: Optional[str] = None) -> Task:
+def add_task_to_epic(
+    backlog: Backlog,
+    epic_id: str,
+    title: str,
+    notes: Optional[str] = None,
+    description: Optional[str] = None,
+    forced_id: Optional[str] = None,
+) -> Task:
     # Build a global set of ids (epic + task) to avoid collisions across epics and tasks
     existing_ids = {e.id for e in backlog.epics_open + backlog.epics_finished}
-    existing_ids.update(t.id for ep in backlog.epics_open + backlog.epics_finished for t in ep.tasks)
+    existing_ids.update(
+        t.id for ep in backlog.epics_open + backlog.epics_finished for t in ep.tasks
+    )
     # normalize forced id if given (pad numeric form to 4 digits)
     if forced_id is not None:
         # Only numeric ids are allowed for consistency.
@@ -362,7 +397,13 @@ def add_task_to_epic(backlog: Backlog, epic_id: str, title: str, notes: Optional
     raise KeyError(f"epic {epic_id} not found")
 
 
-def add_epic_to_backlog(backlog: Backlog, title: str, status: str = 'open', description: Optional[str] = None, forced_id: Optional[str] = None) -> Epic:
+def add_epic_to_backlog(
+    backlog: Backlog,
+    title: str,
+    status: str = "open",
+    description: Optional[str] = None,
+    forced_id: Optional[str] = None,
+) -> Epic:
     """Create a new epic with a unique zero-padded 4-digit id and append to epics_open.
 
     The id generator finds the next unused numeric id (0000..9999) not present
@@ -401,8 +442,11 @@ def add_epic_to_backlog(backlog: Backlog, title: str, status: str = 'open', desc
 
 def build_markdown(backlog: Backlog) -> str:
     lines: List[str] = []
+
     # Helper to remove raw_blocks corresponding to modeled fields
-    def _strip_modeled_blocks_global(raw_lines: List[str], modeled_keys: Optional[set[str]] = None) -> List[str]:
+    def _strip_modeled_blocks_global(
+        raw_lines: List[str], modeled_keys: Optional[set[str]] = None
+    ) -> List[str]:
         """Remove raw_lines blocks that correspond to modeled fields.
 
         Only removes blocks for keys that are present in `modeled_keys`.
@@ -414,17 +458,17 @@ def build_markdown(backlog: Backlog) -> str:
         # If no modeled keys provided, return raw lines unchanged
         if not modeled_keys:
             return list(raw_lines)
-        key_pattern = '|'.join(re.escape(k) for k in modeled_keys)
+        key_pattern = "|".join(re.escape(k) for k in modeled_keys)
         key_re = re.compile(rf"^\s*-\s*({key_pattern}):", flags=re.I)
         while i < len(raw_lines):
             ln = raw_lines[i]
             if key_re.match(ln.strip()):
-                base_indent = len(ln) - len(ln.lstrip(' '))
+                base_indent = len(ln) - len(ln.lstrip(" "))
                 i += 1
                 while i < len(raw_lines):
                     nxt = raw_lines[i]
-                    nxt_indent = len(nxt) - len(nxt.lstrip(' '))
-                    if nxt.strip() == '':
+                    nxt_indent = len(nxt) - len(nxt.lstrip(" "))
+                    if nxt.strip() == "":
                         i += 1
                         continue
                     if nxt_indent > base_indent:
@@ -435,15 +479,20 @@ def build_markdown(backlog: Backlog) -> str:
             out.append(ln)
             i += 1
         return out
+
     # If the original header contains explicit Epics section headings (from
     # the template), preserve their position by splicing our generated epic
     # content into the header in-place. This avoids moving the Epics sections
     # after an EOF marker or other footer content.
     # Normalize header/footer raw lines to remove existing trailing newlines
-    hdr = [ln.rstrip('\n') for ln in (backlog.header or [])]
+    hdr = [ln.rstrip("\n") for ln in (backlog.header or [])]
     # find template markers if present
-    idx1 = next((i for i, line in enumerate(hdr) if line.strip().startswith("## 1. Epics - open")), None)
-    idx2 = next((i for i, line in enumerate(hdr) if line.strip().startswith("## 2. Epics - finished")), None)
+    idx1 = next(
+        (i for i, line in enumerate(hdr) if line.strip().startswith("## 1. Epics - open")), None
+    )
+    idx2 = next(
+        (i for i, line in enumerate(hdr) if line.strip().startswith("## 2. Epics - finished")), None
+    )
     # detect EOF-like marker in header which should be treated as a footer boundary
     eof_idx = next((i for i, line in enumerate(hdr) if line.strip() in ("EOF", "---")), None)
 
@@ -462,7 +511,7 @@ def build_markdown(backlog: Backlog) -> str:
             # written output preserves the marker position from the template
             emit_header_head = hdr[: idx1 + 1]
             # we'll treat the header tail as the content after the finished marker
-            emit_footer_after_idx = (idx2 if idx2 is not None else idx1)
+            emit_footer_after_idx = idx2 if idx2 is not None else idx1
             emit_header_tail = hdr[emit_footer_after_idx + 1 :]
         lines.extend(emit_header_head)
         # ensure blank separator
@@ -502,8 +551,8 @@ def build_markdown(backlog: Backlog) -> str:
     for e in backlog.epics_open:
         # Use configured symbol for open epic where available
         sym = None
-        sym_map = cast(Dict[str, Any], values.get('symbol_map', {}) or {})
-        status_lower = (e.status or '').strip().lower()
+        sym_map = cast(Dict[str, Any], values.get("symbol_map", {}) or {})
+        status_lower = (e.status or "").strip().lower()
         for k, v in sym_map.items():
             if isinstance(v, list):
                 if status_lower in v:
@@ -512,7 +561,7 @@ def build_markdown(backlog: Backlog) -> str:
             elif v == status_lower:
                 sym = k
                 break
-        sym = sym or '☐'
+        sym = sym or "☐"
         lines.append(f"- {sym} Epic {e.id}: {e.title}")
         lines.append(f"  - status: {e.status}")
         # emit epic-level structured fields if present
@@ -543,7 +592,7 @@ def build_markdown(backlog: Backlog) -> str:
         # Preserve any raw_lines after structured fields
         if e.raw_lines:
             modeled = set()
-            for k in ('notes', 'description', 'added', 'closed'):
+            for k in ("notes", "description", "added", "closed"):
                 if getattr(e, k, None):
                     modeled.add(k)
             rl = _strip_modeled_blocks_global(list(e.raw_lines), modeled)
@@ -553,7 +602,7 @@ def build_markdown(backlog: Backlog) -> str:
                 rl.pop()
             prev_blank = False
             for raw in rl:
-                raw2 = raw.rstrip('\n')
+                raw2 = raw.rstrip("\n")
                 is_blank = raw2.strip() == ""
                 if is_blank and prev_blank:
                     continue
@@ -564,7 +613,7 @@ def build_markdown(backlog: Backlog) -> str:
         for t in e.tasks:
             # task symbol resolved from status
             task_sym = None
-            status_lower = (t.status or '').strip().lower()
+            status_lower = (t.status or "").strip().lower()
             for k, v in sym_map.items():
                 if isinstance(v, list):
                     if status_lower in v:
@@ -573,7 +622,7 @@ def build_markdown(backlog: Backlog) -> str:
                 elif v == status_lower:
                     task_sym = k
                     break
-            task_sym = task_sym or '\u2610'
+            task_sym = task_sym or "\u2610"
             lines.append(f"    - {task_sym} Task {t.id}: {t.title}")
             lines.append(f"      - status: {t.status}")
             if t.added:
@@ -582,7 +631,11 @@ def build_markdown(backlog: Backlog) -> str:
                 lines.append(f"      - closed: {t.closed}")
             if t.description:
                 # prefer inline when single-line
-                if len(t.description) == 1 and t.description[0] != "" and "\n" not in t.description[0]:
+                if (
+                    len(t.description) == 1
+                    and t.description[0] != ""
+                    and "\n" not in t.description[0]
+                ):
                     lines.append(f"      - description: {t.description[0]}")
                 else:
                     lines.append("      - description:")
@@ -607,8 +660,8 @@ def build_markdown(backlog: Backlog) -> str:
     for e in backlog.epics_finished:
         # resolve symbol for epic status (default to done/checkmark)
         sym = None
-        sym_map = cast(Dict[str, Any], values.get('symbol_map', {}) or {})
-        status_lower = (e.status or '').strip().lower()
+        sym_map = cast(Dict[str, Any], values.get("symbol_map", {}) or {})
+        status_lower = (e.status or "").strip().lower()
         for k, v in sym_map.items():
             if isinstance(v, list):
                 if status_lower in v:
@@ -617,7 +670,7 @@ def build_markdown(backlog: Backlog) -> str:
             elif v == status_lower:
                 sym = k
                 break
-        sym = sym or '\u2705'
+        sym = sym or "\u2705"
         lines.append(f"- {sym} Epic {e.id}: {e.title}")
         lines.append(f"  - status: {e.status}")
         # emit epic-level structured fields if present (same as open epics)
@@ -646,7 +699,7 @@ def build_markdown(backlog: Backlog) -> str:
         # preserve epic-level raw lines (strip modeled blocks like notes/description/added/closed)
         if e.raw_lines:
             modeled = set()
-            for k in ('notes', 'description', 'added', 'closed'):
+            for k in ("notes", "description", "added", "closed"):
                 if getattr(e, k, None):
                     modeled.add(k)
             rl = _strip_modeled_blocks_global(list(e.raw_lines), modeled)
@@ -656,7 +709,7 @@ def build_markdown(backlog: Backlog) -> str:
                 rl.pop()
             prev_blank = False
             for raw in rl:
-                raw2 = raw.rstrip('\n')
+                raw2 = raw.rstrip("\n")
                 is_blank = raw2.strip() == ""
                 if is_blank and prev_blank:
                     continue
@@ -666,7 +719,7 @@ def build_markdown(backlog: Backlog) -> str:
         lines.append("  - tasks:")
         for t in e.tasks:
             task_sym = None
-            status_lower = (t.status or '').strip().lower()
+            status_lower = (t.status or "").strip().lower()
             for k, v in sym_map.items():
                 if isinstance(v, list):
                     if status_lower in v:
@@ -675,7 +728,7 @@ def build_markdown(backlog: Backlog) -> str:
                 elif v == status_lower:
                     task_sym = k
                     break
-            task_sym = task_sym or '\u2610'
+            task_sym = task_sym or "\u2610"
             lines.append(f"    - {task_sym} Task {t.id}: {t.title}")
             lines.append(f"      - status: {t.status}")
             if t.added:
@@ -702,10 +755,10 @@ def build_markdown(backlog: Backlog) -> str:
     # Now append any header tail (the original content that followed the
     # Epics markers in the template, e.g., Ideas/EOF or other footer lines)
     if emit_header_tail:
-        lines.extend([ln.rstrip('\n') for ln in emit_header_tail])
+        lines.extend([ln.rstrip("\n") for ln in emit_header_tail])
     else:
         # If no header tail was present, append the explicit backlog.footer
-        lines.extend([ln.rstrip('\n') for ln in (backlog.footer or [])])
+        lines.extend([ln.rstrip("\n") for ln in (backlog.footer or [])])
 
     # Collapse runs of blank lines to at most one to avoid excessive vertical
     # whitespace caused by assembling header/raw_lines/tasks/footer pieces.
@@ -752,7 +805,7 @@ def safe_write(path: str, text: str) -> None:
     try:
         # Ensure the directory exists (only if path contains directories)
         dir_path = os.path.dirname(path)
-        if dir_path and dir_path != '.':
+        if dir_path and dir_path != ".":
             os.makedirs(dir_path, exist_ok=True)
 
         # Write to temporary file first
@@ -799,25 +852,25 @@ def make_backup(path: str, backup_dir: str = None, max_backups: int = None) -> s
     try:
         p = os.path.abspath(path)
         d = os.path.dirname(p)
-        backup_dir_name = backup_dir or '.backups'
+        backup_dir_name = backup_dir or ".backups"
         backups_dir = os.path.join(d, backup_dir_name)
         os.makedirs(backups_dir, exist_ok=True)
 
-        ts = time.strftime('%Y%m%d_%H%M%S')
+        ts = time.strftime("%Y%m%d_%H%M%S")
         base = os.path.basename(p)
         bak = f"{base}.{ts}.bak"
         dest = os.path.join(backups_dir, bak)
 
         shutil.copy2(p, dest)
         logger.info(f"Created backup: {dest}")
-        
+
         # Auto-prune old backups if max_backups is specified
         if max_backups is not None:
             try:
                 prune_backups(path, keep=max_backups, backup_dir=backup_dir)
             except Exception as e:
                 logger.warning(f"Failed to prune old backups: {e}")
-        
+
         return dest
 
     except Exception as e:
@@ -837,12 +890,15 @@ def list_backups(path: str, backup_dir: str = None) -> list[str]:
     """
     p = os.path.abspath(path)
     d = os.path.dirname(p)
-    backup_dir_name = backup_dir or '.backups'
+    backup_dir_name = backup_dir or ".backups"
     backups_dir = os.path.join(d, backup_dir_name)
     if not os.path.isdir(backups_dir):
         return []
-    files = [os.path.join(backups_dir, f) for f in os.listdir(backups_dir)
-             if f.startswith(os.path.basename(p) + '.') and f.endswith('.bak')]
+    files = [
+        os.path.join(backups_dir, f)
+        for f in os.listdir(backups_dir)
+        if f.startswith(os.path.basename(p) + ".") and f.endswith(".bak")
+    ]
     # sort by modification time ascending (oldest first)
     files.sort(key=lambda f: os.path.getmtime(f))
     return files
@@ -853,18 +909,23 @@ def restore_backup(path: str, backup_path: str) -> None:
     if not os.path.exists(backup_path):
         raise FileNotFoundError(backup_path)
     # atomic replace
-    tmp = path + '.restore.tmp'
+    tmp = path + ".restore.tmp"
     shutil.copy2(backup_path, tmp)
     os.replace(tmp, path)
 
 
-def prune_backups(path: str, keep: Optional[int] = None, older_than_days: Optional[int] = None, backup_dir: str = None) -> List[str]:
+def prune_backups(
+    path: str,
+    keep: Optional[int] = None,
+    older_than_days: Optional[int] = None,
+    backup_dir: str = None,
+) -> List[str]:
     """Prune backups for `path` by keeping the newest `keep` files and/or removing files older than `older_than_days`.
 
     Args:
         path: File path to prune backups for
         keep: Number of newest backups to keep (optional)
-        older_than_days: Remove backups older than this many days (optional) 
+        older_than_days: Remove backups older than this many days (optional)
         backup_dir: Custom backup directory name (default: '.backups')
 
     Returns:
@@ -960,7 +1021,12 @@ def update_task_status(backlog: Backlog, task_id: str, new_status: str) -> Task:
     _, task = find_task(backlog, task_id)
     task.status = new_status
     lower = (new_status or "").strip().lower()
-    terminal_list = set(values.get('acceptable_terminal', ["done", "reverted", "rejected", "cancelled", "implemented", "fixed", "failed"]))
+    terminal_list = set(
+        values.get(
+            "acceptable_terminal",
+            ["done", "reverted", "rejected", "cancelled", "implemented", "fixed", "failed"],
+        )
+    )
     if lower in terminal_list:
         if not task.closed:
             task.closed = date.today().isoformat()
@@ -1049,6 +1115,7 @@ def normalize_backlog_format(backlog: Backlog) -> list[str]:
     """Normalize status tokens and empty/placeholder dates; returns list of change descriptions."""
     changes: list[str] = []
     from . import values as _values
+
     for e in backlog.epics_open + backlog.epics_finished:
         # normalize epic status word
         if e.status:
@@ -1056,29 +1123,29 @@ def normalize_backlog_format(backlog: Backlog) -> list[str]:
             n = norm.lower()
             # map symbols or words
             mapped = None
-            sym_map = cast(Dict[str, Any], _values.get('symbol_map', {}) or {})
+            sym_map = cast(Dict[str, Any], _values.get("symbol_map", {}) or {})
             for k, v in sym_map.items():
                 if k == norm or k == norm.strip():
                     mapped = v
                     break
             if not mapped:
-                word_map = cast(Dict[str, str], _values.get('word_map', {}) or {})
+                word_map = cast(Dict[str, str], _values.get("word_map", {}) or {})
                 mapped = word_map.get(n, n)
             if mapped != e.status:
                 changes.append(f"epic {e.id} status: {e.status} -> {mapped}")
                 e.status = mapped
     for t in e.tasks:
-            if t.status:
-                n = t.status.strip().lower()
-                word_map = cast(Dict[str, str], _values.get('word_map', {}) or {})
-                mapped = word_map.get(n, t.status)
-                if mapped != t.status:
-                    changes.append(f"task {t.id} status: {t.status} -> {mapped}")
-                    t.status = mapped
-            # normalize placeholder closed dates like em-dash '—' or dash
-            if t.closed and t.closed.strip() in ('—', '-', '—'):
-                changes.append(f"task {t.id} closed: {t.closed} -> ''")
-                t.closed = None
+        if t.status:
+            n = t.status.strip().lower()
+            word_map = cast(Dict[str, str], _values.get("word_map", {}) or {})
+            mapped = word_map.get(n, t.status)
+            if mapped != t.status:
+                changes.append(f"task {t.id} status: {t.status} -> {mapped}")
+                t.status = mapped
+        # normalize placeholder closed dates like em-dash '—' or dash
+        if t.closed and t.closed.strip() in ("—", "-", "—"):
+            changes.append(f"task {t.id} closed: {t.closed} -> ''")
+            t.closed = None
     return changes
 
 
@@ -1102,11 +1169,11 @@ def auto_fix_date_formats(backlog: Backlog) -> list[str]:
         date_str = date_str.strip()
 
         # Already ISO format
-        if re.match(r'^\d{4}-\d{2}-\d{2}$', date_str):
+        if re.match(r"^\d{4}-\d{2}-\d{2}$", date_str):
             return None
 
         # MM/DD/YYYY
-        match = re.match(r'^(\d{1,2})/(\d{1,2})/(\d{4})$', date_str)
+        match = re.match(r"^(\d{1,2})/(\d{1,2})/(\d{4})$", date_str)
         if match:
             month, day, year = match.groups()
             try:
@@ -1117,7 +1184,7 @@ def auto_fix_date_formats(backlog: Backlog) -> list[str]:
                 return None
 
         # DD-MM-YYYY
-        match = re.match(r'^(\d{1,2})-(\d{1,2})-(\d{4})$', date_str)
+        match = re.match(r"^(\d{1,2})-(\d{1,2})-(\d{4})$", date_str)
         if match:
             day, month, year = match.groups()
             try:
@@ -1127,7 +1194,7 @@ def auto_fix_date_formats(backlog: Backlog) -> list[str]:
                 return None
 
         # YYYY/MM/DD
-        match = re.match(r'^(\d{4})/(\d{1,2})/(\d{1,2})$', date_str)
+        match = re.match(r"^(\d{4})/(\d{1,2})/(\d{1,2})$", date_str)
         if match:
             year, month, day = match.groups()
             try:
@@ -1139,6 +1206,7 @@ def auto_fix_date_formats(backlog: Backlog) -> list[str]:
         # Try to parse with dateutil if available (more flexible)
         try:
             import dateutil.parser
+
             parsed = dateutil.parser.parse(date_str)
             return parsed.date().isoformat()
         except (ImportError, ValueError):
@@ -1233,25 +1301,25 @@ def auto_complete_epics(backlog: Backlog) -> list[str]:
     changes: list[str] = []
     from . import values as _values
 
-    finish_list = set(_values.get('finish_statuses', ["done", "closed", "complete", "finished"]))
+    finish_list = set(_values.get("finish_statuses", ["done", "closed", "complete", "finished"]))
 
     for e in backlog.epics_open + backlog.epics_finished:
-        if not getattr(e, 'tasks', None) or not e.tasks:
+        if not getattr(e, "tasks", None) or not e.tasks:
             continue
 
         # Check if all tasks are finished
         all_finished = True
         for t in e.tasks:
-            st = (t.status or '').strip().lower()
+            st = (t.status or "").strip().lower()
             if st not in finish_list:
                 all_finished = False
                 break
 
         if all_finished:
-            est = (e.status or '').strip().lower()
+            est = (e.status or "").strip().lower()
             if est not in finish_list:
                 # Auto-complete the epic
-                new_status = 'done'  # Default completion status
+                new_status = "done"  # Default completion status
                 changes.append(f"epic {e.id} auto-completed: {e.status or 'open'} -> {new_status}")
                 e.status = new_status
 
@@ -1262,4 +1330,3 @@ def auto_complete_epics(backlog: Backlog) -> list[str]:
                     changes.append(f"epic {e.id} moved to finished section")
 
     return changes
-
